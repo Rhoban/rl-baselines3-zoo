@@ -163,9 +163,10 @@ Swimmer-v3:
   train_freq: 1
   gradient_steps: 1
 
-approach-v0:
-  n_timesteps: 1000000
+approach-v0: &approach
+  n_timesteps: !!float 10e6
   policy: 'MlpPolicy'
+  gamma: 0.98
   buffer_size: 200000
   learning_starts: 10000
   noise_type: 'normal'
@@ -175,9 +176,10 @@ approach-v0:
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
+
 approach-left-v0:
-    <<: *approach-v0
+    <<: *approach
 approach-right-v0:
-    <<: *approach-v0
+    <<: *approach
 approach-place-v0:
-    <<: *approach-v0
+    <<: *approach
