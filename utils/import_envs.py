@@ -34,3 +34,4 @@ except ImportError:
     panda_gym = None
 
 import gym_approach
+import gym_strategy

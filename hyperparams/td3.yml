@@ -183,3 +183,6 @@ approach-right-v0:
     <<: *approach
 approach-place-v0:
     <<: *approach
+
+strategy-v0:
+    <<: *approach
