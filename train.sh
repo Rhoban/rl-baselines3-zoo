@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #ENVS=strategy
-ENVS=approach-left approach-right approach-place
+ENVS="approach-left approach-right approach-place"
 killall -9 python
 
 for env in $ENVS;
