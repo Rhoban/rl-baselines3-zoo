@@ -44,7 +44,7 @@ print(f"Generating a dummy observation {obs}")
 actor_fname = f"{args.output}{args.env}_actor.onnx"
 print(f"Exporting actor model to {actor_fname}")
 actor_model = th.nn.Sequential(policy.actor.features_extractor, policy.actor.mu)
-th.onnx.export(actor_model, obs, actor_fname)
+th.onnx.export(actor_model, obs, actor_fname, opset_version=11)
 
 # Value function is a combination of actor and Q
 class TD3PolicyValue(th.nn.Module):
@@ -65,4 +65,4 @@ action = policy.actor.mu(policy.actor.extract_features(obs))
 v_model = TD3PolicyValue(policy, actor_model)
 value_fname = f"{args.output}{args.env}_value.onnx"
 print(f"Exporting value model to {value_fname}")
-th.onnx.export(v_model, obs, value_fname)
+th.onnx.export(v_model, obs, value_fname, opset_version=11)
