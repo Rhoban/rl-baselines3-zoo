@@ -1,5 +1,6 @@
 from distutils.sysconfig import customize_compiler
 import gym
+import os
 import utils.import_envs
 import torch as th
 from stable_baselines3.td3.policies import TD3Policy
@@ -11,7 +12,7 @@ from utils import ALGOS, create_test_env, get_latest_run_id, get_saved_hyperpara
 parser = argparse.ArgumentParser()
 parser.add_argument("--env", help="Env", type=str, required=True)
 parser.add_argument("--model", help="TD3 model to export", type=str, required=False)
-parser.add_argument("--output", help="Target", type=str, required=True)
+parser.add_argument("--output", help="Target directory", type=str, required=True)
 args = parser.parse_args()
 device = th.device("cpu")
 
@@ -66,3 +67,9 @@ v_model = TD3PolicyValue(policy, actor_model)
 value_fname = f"{args.output}{args.env}_value.onnx"
 print(f"Exporting value model to {value_fname}")
 th.onnx.export(v_model, obs, value_fname, opset_version=11)
+
+print("Exporting models for OpenVino...")
+input_shape = ",".join(map(str, obs.shape))
+os.system(f"mo --input_model {actor_fname} --input_shape [{input_shape}] --data_type FP32 --output_dir {args.output}")
+os.system(f"mo --input_model {value_fname} --input_shape [{input_shape}] --data_type FP32 --output_dir {args.output}")
+
