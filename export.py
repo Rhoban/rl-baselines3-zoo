@@ -27,7 +27,7 @@ env = gym.make(args.env)
 
 if args.model is None:
     exp_id = get_latest_run_id("logs/td3/", args.env)
-    model_fname = f"logs/td3/{args.env}_{exp_id}/{args.env}.zip"
+    model_fname = f"logs/td3/{args.env}_{exp_id}/best_model.zip"
 else:
     model_fname = args.model
 
