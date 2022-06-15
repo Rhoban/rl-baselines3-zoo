@@ -7,3 +7,5 @@ do
     echo "*** Exporting $env"
     python export.py --env $env --output rl-agents/
 done
+
+cp -R rl-agents/* ~/workspace/env/common/rl-agents/
