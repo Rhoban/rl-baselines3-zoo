@@ -195,5 +195,5 @@ strategy-v0:
   gradient_steps: -1
   train_freq: 1
   learning_rate: !!float 1e-4
-  policy_kwargs: "dict(net_arch=[512, 512, 512])"
+  policy_kwargs: "dict(net_arch=[1024, 512])"
 
