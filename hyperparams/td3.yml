@@ -185,4 +185,15 @@ approach-place-v0:
     <<: *approach
 
 strategy-v0:
-    <<: *approach
+  n_timesteps: !!float 5e6
+  policy: 'MlpPolicy'
+  gamma: 0.98
+  buffer_size: 200000
+  learning_starts: 10000
+  noise_type: 'normal'
+  noise_std: 0.1
+  gradient_steps: -1
+  train_freq: 1
+  learning_rate: !!float 1e-4
+  policy_kwargs: "dict(net_arch=[512, 512, 512])"
+
