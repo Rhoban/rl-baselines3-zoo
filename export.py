@@ -3,6 +3,7 @@ import gym
 import os
 import utils.import_envs
 import torch as th
+from torchinfo import summary
 from stable_baselines3.td3.policies import TD3Policy
 from stable_baselines3.common.preprocessing import is_image_space, preprocess_obs
 import argparse
@@ -46,6 +47,7 @@ actor_fname = f"{args.output}{args.env}_actor.onnx"
 print(f"Exporting actor model to {actor_fname}")
 actor_model = th.nn.Sequential(policy.actor.features_extractor, policy.actor.mu)
 th.onnx.export(actor_model, obs, actor_fname, opset_version=11)
+summary(actor_model)
 
 # Value function is a combination of actor and Q
 class TD3PolicyValue(th.nn.Module):
@@ -64,6 +66,7 @@ class TD3PolicyValue(th.nn.Module):
 # Note(antonin): unused variable action
 action = policy.actor.mu(policy.actor.extract_features(obs))
 v_model = TD3PolicyValue(policy, actor_model)
+summary(v_model)
 value_fname = f"{args.output}{args.env}_value.onnx"
 print(f"Exporting value model to {value_fname}")
 th.onnx.export(v_model, obs, value_fname, opset_version=11)
