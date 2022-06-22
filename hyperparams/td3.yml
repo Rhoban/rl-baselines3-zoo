@@ -184,7 +184,7 @@ approach-right-v0:
 approach-place-v0:
     <<: *approach
 
-strategy-v0:
+strategy-v0: &strategy
   n_timesteps: !!float 5e6
   policy: 'MlpPolicy'
   gamma: 0.98
@@ -196,4 +196,7 @@ strategy-v0:
   train_freq: 1
   learning_rate: !!float 1e-4
   policy_kwargs: "dict(net_arch=[1024, 512])"
+
+strategy-against-grass-v0:
+    <<: *strategy
 
