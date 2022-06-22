@@ -200,3 +200,8 @@ strategy-v0: &strategy
 strategy-against-grass-v0:
     <<: *strategy
 
+strategy-relative-v0:
+    <<: *strategy
+
+strategy-against-grass-relative-v0:
+    <<: *strategy
