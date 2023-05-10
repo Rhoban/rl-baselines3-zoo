@@ -163,7 +163,7 @@ Swimmer-v3:
   train_freq: 1
   gradient_steps: 1
 
-approach-v0: &approach
+footsteps-planning-v0: &footsteps-planning
   n_timesteps: !!float 10e6
   policy: 'MlpPolicy'
   gamma: 0.98
@@ -177,12 +177,12 @@ approach-v0: &approach
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 
-approach-left-v0:
-    <<: *approach
-approach-right-v0:
-    <<: *approach
-approach-place-v0:
-    <<: *approach
+footsteps-planning-left-v0:
+    <<: *footsteps-planning
+footsteps-planning-right-v0:
+    <<: *footsteps-planning
+footsteps-planning-place-v0:
+    <<: *footsteps-planning
 
 strategy-v0: &strategy
   n_timesteps: !!float 5e6

@@ -85,17 +85,17 @@ Acrobot-v1:
 
 BipedalWalker-v3:
   normalize: true
-  n_envs: 16
+  n_envs: 32
   n_timesteps: !!float 5e6
   policy: 'MlpPolicy'
   n_steps: 2048
   batch_size: 64
   gae_lambda: 0.95
-  gamma: 0.99
+  gamma: 0.999
   n_epochs: 10
-  ent_coef: 0.001
-  learning_rate: !!float 2.5e-4
-  clip_range: 0.2
+  ent_coef: 0.0
+  learning_rate: !!float 3e-4
+  clip_range: 0.18
 
 BipedalWalkerHardcore-v3:
   normalize: true
@@ -154,7 +154,7 @@ HalfCheetahBulletEnv-v0: &pybullet-defaults
   policy_kwargs: "dict(log_std_init=-2,
                        ortho_init=False,
                        activation_fn=nn.ReLU,
-                       net_arch=[dict(pi=[256, 256], vf=[256, 256])]
+                       net_arch=dict(pi=[256, 256], vf=[256, 256])
                        )"
 
 # Tuned
@@ -164,7 +164,7 @@ AntBulletEnv-v0:
   policy_kwargs: "dict(log_std_init=-1,
                        ortho_init=False,
                        activation_fn=nn.ReLU,
-                       net_arch=[dict(pi=[256, 256], vf=[256, 256])]
+                       net_arch=dict(pi=[256, 256], vf=[256, 256])
                        )"
 
 # Tuned
@@ -175,7 +175,7 @@ Walker2DBulletEnv-v0:
   policy_kwargs: "dict(log_std_init=-2,
                        ortho_init=False,
                        activation_fn=nn.ReLU,
-                       net_arch=[dict(pi=[256, 256], vf=[256, 256])]
+                       net_arch=dict(pi=[256, 256], vf=[256, 256])
                        )"
 
 # Tuned
@@ -186,7 +186,7 @@ HopperBulletEnv-v0:
   policy_kwargs: "dict(log_std_init=-2,
                        ortho_init=False,
                        activation_fn=nn.ReLU,
-                       net_arch=[dict(pi=[256, 256], vf=[256, 256])]
+                       net_arch=dict(pi=[256, 256], vf=[256, 256])
                        )"
 
 # Tuned
@@ -210,7 +210,7 @@ ReacherBulletEnv-v0:
   policy_kwargs: "dict(log_std_init=-2.7,
                        ortho_init=False,
                        activation_fn=nn.ReLU,
-                       net_arch=[dict(pi=[256, 256], vf=[256, 256])]
+                       net_arch=dict(pi=[256, 256], vf=[256, 256])
                        )"
 
 MinitaurBulletEnv-v0:
@@ -284,15 +284,14 @@ InvertedPendulumSwingupBulletEnv-v0:
   learning_rate: 2.5e-4
   clip_range: 0.2
 
+
 # Following https://github.com/lcswillems/rl-starter-files
-# requires --gym-packages gym_minigrid
-MiniGrid-DoorKey-5x5-v0:
-  # Dict Observations are now supported
-  # env_wrapper: gym_minigrid.wrappers.FlatObsWrapper
+MiniGrid-Empty-Random-5x5-v0: &minigrid-defaults
+  env_wrapper: minigrid.wrappers.FlatObsWrapper # See GH/1320#issuecomment-1421108191
   normalize: true
   n_envs: 8 # number of environment copies running in parallel
   n_timesteps: !!float 1e5
-  policy: MlpPolicy
+  policy: 'MlpPolicy'
   n_steps: 128 # batch size is n_steps * n_env
   batch_size: 64 # Number of training minibatches per update
   gae_lambda: 0.95 #  Factor for trade-off of bias vs variance for Generalized Advantage Estimator
@@ -302,45 +301,81 @@ MiniGrid-DoorKey-5x5-v0:
   learning_rate: 2.5e-4 # The learning rate, it can be a function
   clip_range: 0.2 # Clipping parameter, it can be a function
 
-# requires --gym-packages gym_minigrid
 MiniGrid-FourRooms-v0:
-  normalize: true
+  <<: *minigrid-defaults
+  n_timesteps: !!float 5e6
+  n_steps: 512
+
+MiniGrid-DoorKey-5x5-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 1e5
+
+MiniGrid-MultiRoom-N4-S5-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 1e7 # Unsolved
+
+MiniGrid-Fetch-5x5-N2-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 5e6
+
+MiniGrid-GoToDoor-5x5-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 5e6
+
+MiniGrid-PutNear-6x6-N2-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 1e7
+
+MiniGrid-RedBlueDoors-6x6-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 1e6
+  n_steps: 512
+
+MiniGrid-LockedRoom-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 1e7 # Unsolved
+
+MiniGrid-KeyCorridorS3R1-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 5e5
+
+MiniGrid-Unlock-v0:
+  <<: *minigrid-defaults
+
+MiniGrid-ObstructedMaze-2Dlh-v0:
+  <<: *minigrid-defaults
+  n_timesteps: !!float 1e7 # Unsolved
+
+
+CarRacing-v2:
+  env_wrapper:
+    - rl_zoo3.wrappers.FrameSkip:
+        skip: 2
+    - gymnasium.wrappers.resize_observation.ResizeObservation:
+        shape: 64
+    - gymnasium.wrappers.gray_scale_observation.GrayScaleObservation:
+        keep_dim: true
+  frame_stack: 2
+  normalize: "{'norm_obs': False, 'norm_reward': True}"
   n_envs: 8
   n_timesteps: !!float 4e6
-  policy: 'MlpPolicy'
-  n_steps: 512
-  batch_size: 64
-  gae_lambda: 0.95
-  gamma: 0.99
-  n_epochs: 10
-  ent_coef: 0.0
-  learning_rate: 2.5e-4
-  clip_range: 0.2
-
-CarRacing-v0:
-  env_wrapper:
-    - gym.wrappers.resize_observation.ResizeObservation:
-        shape: 64
-    - gym.wrappers.gray_scale_observation.GrayScaleObservation:
-        keep_dim: true
-  frame_stack: 4
-  n_envs: 8
-  n_timesteps: !!float 1e6
   policy: 'CnnPolicy'
   batch_size: 128
   n_steps: 512
   gamma: 0.99
-  gae_lambda: 0.9
-  n_epochs: 20
+  gae_lambda: 0.95
+  n_epochs: 10
   ent_coef: 0.0
   sde_sample_freq: 4
   max_grad_norm: 0.5
   vf_coef: 0.5
-  learning_rate: !!float 3e-5
+  learning_rate: lin_1e-4
   use_sde: True
-  clip_range: 0.4
+  clip_range: 0.2
   policy_kwargs: "dict(log_std_init=-2,
                        ortho_init=False,
+                       activation_fn=nn.GELU,
+                       net_arch=dict(pi=[256], vf=[256]),
                        )"
 
 
@@ -365,9 +400,15 @@ Ant-v3: &mujoco-defaults
 #   <<: *mujoco-defaults
 #   n_timesteps: !!float 2e6
 #
+# tuned
 Swimmer-v3:
   <<: *mujoco-defaults
   gamma: 0.9999
+  n_envs: 4
+  n_steps: 1024
+  batch_size: 256
+  learning_rate: !!float 6e-4
+  gae_lambda: 0.98
 
 # Tuned
 # 10 mujoco envs
@@ -391,7 +432,7 @@ HalfCheetah-v3:
                     log_std_init=-2,
                     ortho_init=False,
                     activation_fn=nn.ReLU,
-                    net_arch=[dict(pi=[256, 256], vf=[256, 256])]
+                    net_arch=dict(pi=[256, 256], vf=[256, 256])
                   )"
 
 # Ant-v3:
@@ -429,10 +470,10 @@ Hopper-v3:
                     log_std_init=-2,
                     ortho_init=False,
                     activation_fn=nn.ReLU,
-                    net_arch=[dict(pi=[256, 256], vf=[256, 256])]
+                    net_arch=dict(pi=[256, 256], vf=[256, 256])
                   )"
 
-HumanoidStandup-v3:
+HumanoidStandup-v2:
   normalize: true
   n_envs: 1
   policy: 'MlpPolicy'
@@ -451,7 +492,7 @@ HumanoidStandup-v3:
                     log_std_init=-2,
                     ortho_init=False,
                     activation_fn=nn.ReLU,
-                    net_arch=[dict(pi=[256, 256], vf=[256, 256])]
+                    net_arch=dict(pi=[256, 256], vf=[256, 256])
                   )"
 
 Humanoid-v3:
@@ -473,10 +514,10 @@ Humanoid-v3:
                     log_std_init=-2,
                     ortho_init=False,
                     activation_fn=nn.ReLU,
-                    net_arch=[dict(pi=[256, 256], vf=[256, 256])]
+                    net_arch=dict(pi=[256, 256], vf=[256, 256])
                   )"
 
-InvertedDoublePendulum-v3:
+InvertedDoublePendulum-v2:
   normalize: true
   n_envs: 1
   policy: 'MlpPolicy'
@@ -492,7 +533,7 @@ InvertedDoublePendulum-v3:
   max_grad_norm: 0.5
   vf_coef: 0.695929
 
-InvertedPendulum-v3:
+InvertedPendulum-v2:
   normalize: true
   n_envs: 1
   policy: 'MlpPolicy'
@@ -508,7 +549,7 @@ InvertedPendulum-v3:
   max_grad_norm: 0.3
   vf_coef: 0.19816
 
-Reacher-v3:
+Reacher-v2:
   normalize: true
   n_envs: 1
   policy: 'MlpPolicy'
@@ -523,28 +564,6 @@ Reacher-v3:
   gae_lambda: 1.0
   max_grad_norm: 0.9
   vf_coef: 0.950368
-
-# Swimmer-v3:
-#   normalize: true
-#   n_envs: 1
-#   policy: 'MlpPolicy'
-#   n_timesteps: !!float 1e6
-#   batch_size: 32
-#   n_steps: 512
-#   gamma: 0.9999
-#   learning_rate: 5.49717e-05
-#   ent_coef: 0.0554757
-#   clip_range: 0.3
-#   n_epochs: 10
-#   gae_lambda: 0.95
-#   max_grad_norm: 0.6
-#   vf_coef: 0.38782
-#   policy_kwargs: "dict(
-#                     log_std_init=-2,
-#                     ortho_init=False,
-#                     activation_fn=nn.ReLU,
-#                     net_arch=[dict(pi=[256, 256], vf=[256, 256])]
-#                   )"
 
 Walker2d-v3:
   normalize: true

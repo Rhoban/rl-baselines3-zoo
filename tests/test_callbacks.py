@@ -14,10 +14,10 @@ def test_raw_stat_callback(tmp_path):
         "--env",
         "CartPole-v1",
         "-params",
-        "callback:'utils.callbacks.RawStatisticsCallback'",
+        "callback:'rl_zoo3.callbacks.RawStatisticsCallback'",
         "--tensorboard-log",
         f"{tmp_path}",
     ]
 
-    return_code = subprocess.call(["python", "train.py"] + args)
+    return_code = subprocess.call(["python", "train.py", *args])
     _assert_eq(return_code, 0)

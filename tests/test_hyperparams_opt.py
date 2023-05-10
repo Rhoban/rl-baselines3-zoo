@@ -2,7 +2,9 @@ import glob
 import os
 import subprocess
 
+import optuna
 import pytest
+from optuna.trial import TrialState
 
 
 def _assert_eq(left, right):
@@ -45,6 +47,7 @@ def test_optimize(tmp_path, sampler, pruner, experiment):
     args = ["-n", str(N_STEPS), "--algo", algo, "--env", env_id, "-params", 'policy_kwargs:"dict(net_arch=[32])"', "n_envs:1"]
     args += ["n_steps:10"] if algo == "ppo" else []
     args += [
+        "--no-optim-plots",
         "--seed",
         "14",
         "--log-folder",
@@ -64,7 +67,7 @@ def test_optimize(tmp_path, sampler, pruner, experiment):
         "-optimize",
     ]
 
-    return_code = subprocess.call(["python", "train.py"] + args)
+    return_code = subprocess.call(["python", "train.py", *args])
     _assert_eq(return_code, 0)
 
 
@@ -97,7 +100,7 @@ def test_optimize_log_path(tmp_path):
         "-optimize",
     ]
 
-    return_code = subprocess.call(["python", "train.py"] + args)
+    return_code = subprocess.call(["python", "train.py", *args])
     _assert_eq(return_code, 0)
     print(optimization_log_path)
     assert os.path.isdir(optimization_log_path)
@@ -118,5 +121,59 @@ def test_optimize_log_path(tmp_path):
         "-f",
         str(tmp_path / "best_hyperparameters"),
     ]
-    return_code = subprocess.call(["python", "scripts/parse_study.py"] + args)
+    return_code = subprocess.call(["python", "scripts/parse_study.py", *args])
     _assert_eq(return_code, 0)
+
+
+def test_multiple_workers(tmp_path):
+    study_name = "test-study"
+    storage = f"sqlite:///{tmp_path}/optuna.db"
+    # n trials per worker
+    n_trials = 2
+    # max total trials
+    max_trials = 3
+    # 1st worker will do 2 trials
+    # 2nd worker will do 1 trial
+    # 3rd worker will do nothing
+    n_workers = 3
+    args = [
+        "-optimize",
+        "--no-optim-plots",
+        "--storage",
+        storage,
+        "--n-trials",
+        str(n_trials),
+        "--max-total-trials",
+        str(max_trials),
+        "--study-name",
+        study_name,
+        "--n-evaluations",
+        str(1),
+        "-n",
+        str(100),
+        "--algo",
+        "a2c",
+        "--env",
+        "Pendulum-v1",
+        "--log-folder",
+        tmp_path,
+        "-params",
+        "n_envs:1",
+        "--seed",
+        "12",
+    ]
+
+    # Sequencial execution to avoid race conditions
+    workers = []
+    for _ in range(n_workers):
+        worker = subprocess.Popen(
+            ["python", "train.py", *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
+        )
+        worker.wait()
+        workers.append(worker)
+
+    study = optuna.load_study(study_name=study_name, storage=storage)
+    assert len(study.get_trials(states=(TrialState.COMPLETE, TrialState.PRUNED))) == max_trials
+
+    for worker in workers:
+        assert worker.returncode == 0, "STDOUT:\n{}\nSTDERR:\n{}\n".format(*worker.communicate())

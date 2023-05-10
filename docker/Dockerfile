@@ -18,10 +18,10 @@ COPY requirements.txt /tmp/
 
 
 RUN \
-    mkdir -p ${CODE_DIR}/rl_zoo && \
+    mkdir -p ${CODE_DIR}/rl_zoo3 && \
     pip uninstall -y stable-baselines3 && \
     pip install -r /tmp/requirements.txt && \
-    pip install git+https://github.com/eleurent/highway-env@1a04c6a98be64632cf9683625022023e70ff1ab1 && \
+    pip install highway-env>=1.7.1 && \
     rm -rf $HOME/.cache/pip
 
 ENV PATH=$VENV/bin:$PATH
