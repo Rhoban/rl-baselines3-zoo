@@ -163,12 +163,29 @@ Swimmer-v3:
   train_freq: 1
   gradient_steps: 1
 
+# Without HER
+# footsteps-planning-v0: &footsteps-planning
+#   n_timesteps: !!float 10e6
+#   policy: 'MlpPolicy'
+#   gamma: 0.98
+#   buffer_size: 200000
+#   learning_starts: 10000
+#   noise_type: 'normal'
+#   noise_std: 0.1
+#   gradient_steps: -1
+#   train_freq: [1, "episode"]
+#   learning_rate: !!float 1e-3
+#   policy_kwargs: "dict(net_arch=[400, 300])"
+
+# With HER
 footsteps-planning-v0: &footsteps-planning
   n_timesteps: !!float 10e6
-  policy: 'MlpPolicy'
+  policy: 'MultiInputPolicy'
   gamma: 0.98
   buffer_size: 200000
   learning_starts: 10000
+  replay_buffer_class: HerReplayBuffer
+  replay_buffer_kwargs: "dict(n_sampled_goal=8,goal_selection_strategy='future')"
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
@@ -182,6 +199,10 @@ footsteps-planning-left-v0:
 footsteps-planning-right-v0:
     <<: *footsteps-planning
 footsteps-planning-place-v0:
+    <<: *footsteps-planning
+footsteps-planning-place-multigoal-v0:
+    <<: *footsteps-planning
+footsteps-planning-obstacle-multigoal-v0:
     <<: *footsteps-planning
 
 strategy-v0: &strategy

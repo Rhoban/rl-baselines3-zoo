@@ -1,21 +1,31 @@
 from distutils.sysconfig import customize_compiler
-import gym
+import gymnasium as gym
 import os
-import utils.import_envs
+import importlib
 import torch as th
 from torchinfo import summary
 from stable_baselines3.td3.policies import TD3Policy
 from stable_baselines3.common.preprocessing import is_image_space, preprocess_obs
 import argparse
-from utils import ALGOS, create_test_env, get_latest_run_id, get_saved_hyperparams
+from rl_zoo3.utils import ALGOS, create_test_env, get_latest_run_id, get_saved_hyperparams
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env", help="Env", type=str, required=True)
 parser.add_argument("--model", help="TD3 model to export", type=str, required=False)
 parser.add_argument("--output", help="Target directory", type=str, required=True)
+parser.add_argument(
+    "--gym-packages",
+    type=str,
+    nargs="+",
+    default=[],
+    help="Additional external Gym environment package modules to import",
+)
 args = parser.parse_args()
 device = th.device("cpu")
+
+for env_module in args.gym_packages:
+    importlib.import_module(env_module)
 
 custom_objects = {
     "learning_rate": 0.0,

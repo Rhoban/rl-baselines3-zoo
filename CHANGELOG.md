@@ -1,14 +1,62 @@
-## Release 2.0.0a4 (WIP)
+## Release 2.2.0a4 (WIP)
 
 ### Breaking Changes
-- Upgraded to gym 0.26+
-- Fixed bug in HistoryWrapper, now returns the correct obs space limits
+- Removed `gym` dependency, the package is still required for some pretrained agents.
 
 ### New Features
+- Add `--eval-env-kwargs` to `train.py` (@Quentin18)
+
+### Bug fixes
+
+### Documentation
+
+### Other
+- Updated docker image, removed support for X server
+- Replaced deprecated `optuna.suggest_uniform(...)` by `optuna.suggest_float(..., low=..., high=...)`
+- Switched to ruff for sorting imports
+- Updated tests to use `shlex.split()`
+
+## Release 2.1.0 (2023-08-17)
+
+### Breaking Changes
+- Dropped python 3.7 support
+- SB3 now requires PyTorch 1.13+
+- Upgraded to SB3 >= 2.1.0
+- Upgraded to Huggingface-SB3 >= 2.3
+- Upgraded to Optuna >= 3.0
+- Upgraded to cloudpickle >= 2.2.1
+
+### New Features
+- Added python 3.11 support
+
+### Bug fixes
+
+### Documentation
+
+### Other
+
+
+## Release 2.0.0 (2023-06-22)
+
+**Gymnasium support**
+
+> **Warning**
+> Stable-Baselines3 (SB3) v2.0.0 will be the last one supporting python 3.7
+
+### Breaking Changes
+- Fixed bug in HistoryWrapper, now returns the correct obs space limits
+- Upgraded to SB3 >= 2.0.0
+- Upgraded to Huggingface-SB3 >= 2.2.5
+- Upgraded to Gym API 0.26+, RL Zoo3 doesn't work anymore with Gym 0.21
+
+### New Features
+- Added Gymnasium support
 - Gym 0.26+ patches to continue working with pybullet and TimeLimit wrapper
 
 ### Bug fixes
-- Renamed ``CarRacing-v1`` to ``CarRacing-v2`` in hyperparameters
+- Renamed `CarRacing-v1` to `CarRacing-v2` in hyperparameters
+- Huggingface push to hub now accepts a `--n-timesteps` argument to adjust the length of the video
+- Fixed `record_video` steps (before it was stepping in a closed env)
 
 ## Release 1.8.0 (2023-04-07)
 
