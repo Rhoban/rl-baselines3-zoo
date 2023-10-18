@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import os
 import torch as th
 from torchinfo import summary
+import rl_zoo3.import_envs
 from stable_baselines3.td3.policies import TD3Policy
 from stable_baselines3.common.preprocessing import is_image_space, preprocess_obs
 import argparse

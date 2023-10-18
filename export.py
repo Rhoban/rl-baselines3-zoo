@@ -1,6 +1,7 @@
 from distutils.sysconfig import customize_compiler
 import gymnasium as gym
 import os
+import rl_zoo3.import_envs
 import importlib
 import torch as th
 from torchinfo import summary
