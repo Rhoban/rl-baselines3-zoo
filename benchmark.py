@@ -9,7 +9,7 @@ from rl_zoo3 import ALGOS, create_test_env, get_saved_hyperparams
 from stable_baselines3.common.utils import set_random_seed
 from rl_zoo3.utils import StoreDict, get_model_path
 
-env_names = ["footsteps-planning-right-v0", "footsteps-planning-place-v0"]
+env_names = ["footsteps-planning-right-v0", "footsteps-planning-right-her-v0"]
 step = 0
 
 # set_random_seed(0)
@@ -33,6 +33,8 @@ for i in range(100):
 
 for env_name in env_names:
 
+    print(f"Environment: {env_name}")
+    
     env = gymnasium.make(env_name)
 
     _, model_path, log_path = get_model_path(
@@ -72,11 +74,10 @@ for env_name in env_names:
             ep_len += 1
 
             if done :
-                print(f"Episode Reward: {episode_reward:.2f}")
-                print("Episode Length", ep_len)
+                # print(f"Episode Reward: {episode_reward:.2f}")
+                # print("Episode Length", ep_len)
 
                 if env_name == env_names[0]:
-                    print(episode_reward)
                     episode_rewards_env1 = np.append(episode_rewards_env1,episode_reward)
                     episode_lengths_env1 = np.append(episode_lengths_env1,ep_len)
                 elif env_name == env_names[1]:

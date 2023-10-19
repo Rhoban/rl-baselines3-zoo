@@ -164,21 +164,32 @@ Swimmer-v3:
   gradient_steps: 1
 
 # Without HER
-# footsteps-planning-v0: &footsteps-planning
-#   n_timesteps: !!float 10e6
-#   policy: 'MlpPolicy'
-#   gamma: 0.98
-#   buffer_size: 200000
-#   learning_starts: 10000
-#   noise_type: 'normal'
-#   noise_std: 0.1
-#   gradient_steps: -1
-#   train_freq: [1, "episode"]
-#   learning_rate: !!float 1e-3
-#   policy_kwargs: "dict(net_arch=[400, 300])"
+footsteps-planning-v0: &footsteps-planning
+  n_timesteps: !!float 10e6
+  policy: 'MlpPolicy'
+  gamma: 0.98
+  buffer_size: 200000
+  learning_starts: 10000
+  noise_type: 'normal'
+  noise_std: 0.1
+  gradient_steps: -1
+  train_freq: [1, "episode"]
+  learning_rate: !!float 1e-3
+  policy_kwargs: "dict(net_arch=[400, 300])"
+
+footsteps-planning-left-v0:
+    <<: *footsteps-planning
+footsteps-planning-right-v0:
+    <<: *footsteps-planning
+footsteps-planning-place-v0:
+    <<: *footsteps-planning
+footsteps-planning-left-withball-v0:
+    <<: *footsteps-planning
+footsteps-planning-right-withball-v0:
+    <<: *footsteps-planning
 
 # With HER
-footsteps-planning-v0: &footsteps-planning
+footsteps-planning-her-v0: &footsteps-planning-her
   n_timesteps: !!float 10e6
   policy: 'MultiInputPolicy'
   gamma: 0.98
@@ -193,17 +204,20 @@ footsteps-planning-v0: &footsteps-planning
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
-
-footsteps-planning-left-v0:
-    <<: *footsteps-planning
-footsteps-planning-right-v0:
-    <<: *footsteps-planning
-footsteps-planning-place-v0:
-    <<: *footsteps-planning
-footsteps-planning-place-multigoal-v0:
-    <<: *footsteps-planning
-footsteps-planning-obstacle-multigoal-v0:
-    <<: *footsteps-planning
+footsteps-planning-left-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-right-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-place-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-left-withball-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-right-withball-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-place-multigoal-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-obstacle-multigoal-her-v0:
+    <<: *footsteps-planning-her
 
 strategy-v0: &strategy
   n_timesteps: !!float 5e6
