@@ -12,43 +12,47 @@ from rl_zoo3.utils import StoreDict, get_model_path
 env_names = ["footsteps-planning-right-v0", "footsteps-planning-place-v0"]
 step = 0
 
-set_random_seed(0)
+# set_random_seed(0)
 
 algo="td3"
 folder="logs"
 
+reset_dict_list = np.array([])
+
 episode_rewards_env1, episode_lengths_env1 = np.array([]), np.array([])
 episode_rewards_env2, episode_lengths_env2 = np.array([]), np.array([])
 
-for i in range(10):
+for i in range(100):
 
     reset_dict = {
         "start_support_foot" : "left" if (np.random.uniform(0, 1) > 0.5) else "right",
         "target_support_foot" : "left" if (np.random.uniform(0, 1) > 0.5) else "right",
         "foot_pose" : np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
     }
-    print(reset_dict)
+    reset_dict_list = np.append(reset_dict_list, reset_dict)
 
-    for env_name in env_names:
+for env_name in env_names:
 
-        env = gymnasium.make(env_name)
+    env = gymnasium.make(env_name)
 
+    _, model_path, log_path = get_model_path(
+        0,
+        folder,
+        algo,
+        env_name,
+        True, #load-best
+        False, #load-checkpoint
+        False, #load-last-checkpoint
+    )
 
-        _, model_path, log_path = get_model_path(
-            0,
-            folder,
-            algo,
-            env_name,
-            True, #load-best
-            False, #load-checkpoint
-            False, #load-last-checkpoint
-        )
+    parameters = {
+        'env': env,
+    }
 
-        parameters = {
-            'env': env,
-        }
+    model = ALGOS["td3"].load(model_path, device="cpu", **parameters)
 
-        model = ALGOS["td3"].load(model_path, device="cpu", **parameters)
+    
+    for reset_dict in reset_dict_list:
         obs, infos = env.reset(seed=0, options=reset_dict)
 
         episode_reward = 0.0
@@ -58,9 +62,7 @@ for i in range(10):
 
         while not done:
             step += 1
-            action, lstm_states = model.predict(
-                        obs,  deterministic=True,
-                    )
+            action, lstm_states = model.predict(obs,  deterministic=True) 
             
             obs, reward, done, truncated, infos = env.step(action)
 
@@ -83,8 +85,5 @@ for i in range(10):
 
                 episode_reward = 0.0
                 ep_len = 0
-
-            # env.render()
-
 
 print(episode_lengths_env1 - episode_lengths_env2)
