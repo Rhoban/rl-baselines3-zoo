@@ -9,10 +9,12 @@ from rl_zoo3 import ALGOS, create_test_env, get_saved_hyperparams
 from stable_baselines3.common.utils import set_random_seed
 from rl_zoo3.utils import StoreDict, get_model_path
 
-env_names = ["footsteps-planning-right-v0", "footsteps-planning-right-her-v0"]
+env_names = ["footsteps-planning-left-v0", "footsteps-planning-left-her-v0"]
 step = 0
 
 # set_random_seed(0)
+
+nb_tests = 1000
 
 algo="td3"
 folder="logs"
@@ -22,7 +24,7 @@ reset_dict_list = np.array([])
 episode_rewards_env1, episode_lengths_env1 = np.array([]), np.array([])
 episode_rewards_env2, episode_lengths_env2 = np.array([]), np.array([])
 
-for i in range(100):
+for i in range(nb_tests):
 
     reset_dict = {
         "start_support_foot" : "left" if (np.random.uniform(0, 1) > 0.5) else "right",
@@ -34,7 +36,7 @@ for i in range(100):
 for env_name in env_names:
 
     print(f"Environment: {env_name}")
-    
+
     env = gymnasium.make(env_name)
 
     _, model_path, log_path = get_model_path(
@@ -87,4 +89,18 @@ for env_name in env_names:
                 episode_reward = 0.0
                 ep_len = 0
 
-print(episode_lengths_env1 - episode_lengths_env2)
+compare_episode_lengths = episode_lengths_env1 - episode_lengths_env2
+
+env2_better_ones = np.zeros(compare_episode_lengths.shape)
+env1_better_ones = np.zeros(compare_episode_lengths.shape)
+
+env2_better_ones[compare_episode_lengths < 0] = 1
+env1_better_ones[compare_episode_lengths > 0] = 1
+
+env2_better_sum = np.sum(env2_better_ones)
+env1_better_sum = np.sum(env1_better_ones)
+
+print(f"Number of tests : {nb_tests}")
+print(f"{env_names[0]} better : {(env1_better_sum*100)/nb_tests}%") 
+print(f"{env_names[1]} better : {(env2_better_sum*100)/nb_tests}%")
+print(f"Same : {((nb_tests - (env1_better_sum + env2_better_sum))*100)/nb_tests}%")
