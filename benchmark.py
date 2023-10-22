@@ -2,6 +2,7 @@ import time
 import os
 import yaml
 import math
+from tqdm import tqdm
 import gym_footsteps_planning
 import gymnasium
 import numpy as np
@@ -9,12 +10,12 @@ from rl_zoo3 import ALGOS, create_test_env, get_saved_hyperparams
 from stable_baselines3.common.utils import set_random_seed
 from rl_zoo3.utils import StoreDict, get_model_path
 
-env_names = ["footsteps-planning-left-v0", "footsteps-planning-left-her-v0"]
+env_names = ["footsteps-planning-left-withball-v0", "footsteps-planning-left-withball-her-v0"]
 step = 0
 
 # set_random_seed(0)
 
-nb_tests = 1000
+nb_tests = 100
 
 algo="td3"
 folder="logs"
@@ -37,7 +38,7 @@ for env_name in env_names:
 
     print(f"Environment: {env_name}")
 
-    env = gymnasium.make(env_name)
+    env = gymnasium.make(env_name, disable_env_checker=True)
 
     _, model_path, log_path = get_model_path(
         0,
@@ -53,10 +54,10 @@ for env_name in env_names:
         'env': env,
     }
 
-    model = ALGOS["td3"].load(model_path, device="cpu", **parameters)
+    model = ALGOS["td3"].load(model_path, device="auto", **parameters)
 
     
-    for reset_dict in reset_dict_list:
+    for reset_dict in tqdm(reset_dict_list):
         obs, infos = env.reset(seed=0, options=reset_dict)
 
         episode_reward = 0.0
@@ -85,7 +86,6 @@ for env_name in env_names:
                 elif env_name == env_names[1]:
                     episode_rewards_env2 = np.append(episode_rewards_env2,episode_reward)
                     episode_lengths_env2 = np.append(episode_lengths_env2,ep_len)
-
                 episode_reward = 0.0
                 ep_len = 0
 
@@ -100,7 +100,10 @@ env1_better_ones[compare_episode_lengths > 0] = 1
 env2_better_sum = np.sum(env2_better_ones)
 env1_better_sum = np.sum(env1_better_ones)
 
+env2_better_mean = -np.sum(compare_episode_lengths[compare_episode_lengths < 0])/env2_better_sum
+env1_better_mean = np.sum(compare_episode_lengths[compare_episode_lengths > 0])/env1_better_sum
+
 print(f"Number of tests : {nb_tests}")
-print(f"{env_names[0]} better : {(env1_better_sum*100)/nb_tests}%") 
-print(f"{env_names[1]} better : {(env2_better_sum*100)/nb_tests}%")
+print(f"{env_names[0]} better in {(env1_better_sum*100)/nb_tests}% of the tests with a mean of {env1_better_mean} less steps than the other environment")
+print(f"{env_names[1]} better in {(env2_better_sum*100)/nb_tests}% of the tests with a mean of {env2_better_mean} less steps than the other environment")
 print(f"Same : {((nb_tests - (env1_better_sum + env2_better_sum))*100)/nb_tests}%")
