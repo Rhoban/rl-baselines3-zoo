@@ -10,20 +10,20 @@ from rl_zoo3 import ALGOS, create_test_env, get_saved_hyperparams
 from stable_baselines3.common.utils import set_random_seed
 from rl_zoo3.utils import StoreDict, get_model_path
 
-env_names = ["footsteps-planning-right-withball-multigoal-her-v0", "footsteps-planning-right-withball-her-v0"]
+env_names = ["footsteps-planning-right-withball-her-v0", "footsteps-planning-right-withball-v0"]
 step = 0
 
 # set_random_seed(0)
 max_episode_len = 90
-nb_tests = 1000
+nb_tests = 10000
 
 algo="td3"
 folder="logs"
 
 reset_dict_list = np.array([])
 
-episode_rewards_env1, episode_lengths_env1 = np.array([]), np.array([])
-episode_rewards_env2, episode_lengths_env2 = np.array([]), np.array([])
+episode_rewards_env1, episode_lengths_env1, walks_in_ball_env1, truncated_eps_env1 = np.array([]),np.array([]),np.array([]),np.array([])
+episode_rewards_env2, episode_lengths_env2, walks_in_ball_env2, truncated_eps_env2 = np.array([]),np.array([]),np.array([]),np.array([])
 
 for i in range(nb_tests):
     
@@ -36,17 +36,14 @@ for i in range(nb_tests):
     
     if ("multigoal" in env_names[0]) & ("multigoal" in env_names[1]):
         reset_dict["target_foot_pose"] = np.random.uniform([-2, -2, -1, -1], [2, 2, 1, 1])
-        print("multigoal")
         
     if ("right" in env_names[0]) | ("right" in env_names[1]): 
         reset_dict["target_foot_pose"] = np.array([0, 0, 1, 0])
         reset_dict["target_support_foot"] = "right"
-        print("right")
         
     if ("left" in env_names[0]) | ("left" in env_names[1]): 
         reset_dict["target_foot_pose"] = np.array([0, 0, 1, 0])
         reset_dict["target_support_foot"] = "left"
-        print("left")
         
     reset_dict_list = np.append(reset_dict_list, reset_dict)
     
@@ -77,6 +74,8 @@ for env_name in env_names:
         obs, infos = env.reset(options=reset_dict)
         episode_reward = 0.0
         ep_len = 0
+        walk_in_ball = 0
+        truncated_ep = 0
 
         done = False
         
@@ -85,24 +84,32 @@ for env_name in env_names:
             action, lstm_states = model.predict(obs,  deterministic=True) 
             
             obs, reward, done, truncated, infos = env.step(action)
-
+            
             episode_start = done
 
             episode_reward += reward
             ep_len += 1
-
+            
+            if reward == -10:
+                walk_in_ball = 1
+                
+            if (not done) & (ep_len==max_episode_len):
+                truncated_ep = 1
+                    
             if done :
                 # print(f"Episode Reward: {episode_reward:.2f}")
                 # print("Episode Length", ep_len)
 
                 if env_name == env_names[0]:
+                    walks_in_ball_env1 = np.append(walks_in_ball_env1,walk_in_ball)
+                    truncated_eps_env1 = np.append(truncated_eps_env1,truncated_ep)
                     episode_rewards_env1 = np.append(episode_rewards_env1,episode_reward)
                     episode_lengths_env1 = np.append(episode_lengths_env1,ep_len)
                 elif env_name == env_names[1]:
+                    walks_in_ball_env2 = np.append(walks_in_ball_env2,walk_in_ball)
+                    truncated_eps_env2 = np.append(truncated_eps_env2,truncated_ep)
                     episode_rewards_env2 = np.append(episode_rewards_env2,episode_reward)
                     episode_lengths_env2 = np.append(episode_lengths_env2,ep_len)
-                episode_reward = 0.0
-                ep_len = 0
 
 compare_episode_lengths = episode_lengths_env1 - episode_lengths_env2
 
@@ -115,10 +122,17 @@ env1_better_ones[compare_episode_lengths < 0] = 1
 env2_better_sum = np.sum(env2_better_ones)
 env1_better_sum = np.sum(env1_better_ones)
 
-env2_better_mean = -np.sum(compare_episode_lengths[compare_episode_lengths > 0])/env2_better_sum
-env1_better_mean = np.sum(compare_episode_lengths[compare_episode_lengths < 0])/env1_better_sum
+env2_better_mean = np.sum(compare_episode_lengths[compare_episode_lengths > 0])/env2_better_sum
+env1_better_mean = -np.sum(compare_episode_lengths[compare_episode_lengths < 0])/env1_better_sum
 
 print(f"Number of tests : {nb_tests}")
-print(f"{env_names[0]} better in {(env1_better_sum*100)/nb_tests}% of the tests with a mean of {env1_better_mean} less steps than the other environment")
-print(f"{env_names[1]} better in {(env2_better_sum*100)/nb_tests}% of the tests with a mean of {env2_better_mean} less steps than the other environment")
-print(f"Same : {((nb_tests - (env1_better_sum + env2_better_sum))*100)/nb_tests}%")
+print(f"{env_names[0]}------")
+print(f"    better in {(env1_better_sum*100)/nb_tests}% of the tests with a mean of {env1_better_mean} less steps than the other environment")
+print(f"    walks in ball in {(np.sum(walks_in_ball_env1)*100)/nb_tests}% of the tests")
+print(f"    truncated in {(np.sum(truncated_eps_env1)*100)/nb_tests}% of the tests")
+print(f"{env_names[1]}------")
+print(f"    better in {(env2_better_sum*100)/nb_tests}% of the tests with a mean of {env2_better_mean} less steps than the other environment")
+print(f"    walks in ball in {(np.sum(walks_in_ball_env2)*100)/nb_tests}% of the tests")
+print(f"    truncated in {(np.sum(truncated_eps_env2)*100)/nb_tests}% of the tests")
+print("-------------")
+print(f"Same number of steps for both envs in {((nb_tests - (env1_better_sum + env2_better_sum))*100)/nb_tests}% of the tests")
