@@ -10,11 +10,11 @@ from rl_zoo3 import ALGOS, create_test_env, get_saved_hyperparams
 from stable_baselines3.common.utils import set_random_seed
 from rl_zoo3.utils import StoreDict, get_model_path
 
-env_names = ["footsteps-planning-right-withball-v0", "footsteps-planning-right-withball-her-v0"]
+env_names = ["footsteps-planning-right-withball-multigoal-her-v0", "footsteps-planning-right-withball-her-v0"]
 step = 0
 
 # set_random_seed(0)
-
+max_episode_len = 90
 nb_tests = 1000
 
 algo="td3"
@@ -26,14 +26,30 @@ episode_rewards_env1, episode_lengths_env1 = np.array([]), np.array([])
 episode_rewards_env2, episode_lengths_env2 = np.array([]), np.array([])
 
 for i in range(nb_tests):
-
+    
     reset_dict = {
+        "start_foot_pose" : np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
         "start_support_foot" : "left" if (np.random.uniform(0, 1) > 0.5) else "right",
-        "target_support_foot" : "left" if (np.random.uniform(0, 1) > 0.5) else "right",
-        "foot_pose" : np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
+        "target_foot_pose" : None,
+        "target_support_foot" : None        
     }
+    
+    if ("multigoal" in env_names[0]) & ("multigoal" in env_names[1]):
+        reset_dict["target_foot_pose"] = np.random.uniform([-2, -2, -1, -1], [2, 2, 1, 1])
+        print("multigoal")
+        
+    if ("right" in env_names[0]) | ("right" in env_names[1]): 
+        reset_dict["target_foot_pose"] = np.array([0, 0, 1, 0])
+        reset_dict["target_support_foot"] = "right"
+        print("right")
+        
+    if ("left" in env_names[0]) | ("left" in env_names[1]): 
+        reset_dict["target_foot_pose"] = np.array([0, 0, 1, 0])
+        reset_dict["target_support_foot"] = "left"
+        print("left")
+        
     reset_dict_list = np.append(reset_dict_list, reset_dict)
-
+    
 for env_name in env_names:
 
     print(f"Environment: {env_name}")
@@ -54,18 +70,17 @@ for env_name in env_names:
         'env': env,
     }
 
-    model = ALGOS["td3"].load(model_path, device="cpu", **parameters)
+    model = ALGOS["td3"].load(model_path, device="auto", **parameters)
 
     
     for reset_dict in tqdm(reset_dict_list):
-        obs, infos = env.reset(seed=0, options=reset_dict)
-
+        obs, infos = env.reset(options=reset_dict)
         episode_reward = 0.0
         ep_len = 0
 
         done = False
-
-        while not done:
+        
+        while (not done) & (ep_len <= max_episode_len):
             step += 1
             action, lstm_states = model.predict(obs,  deterministic=True) 
             

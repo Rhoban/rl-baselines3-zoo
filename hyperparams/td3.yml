@@ -166,7 +166,7 @@ Swimmer-v3:
 # Without HER
 footsteps-planning-v0: &footsteps-planning
   n_timesteps: !!float 10e6
-  policy: 'MlpPolicy'
+  policy: 'MultiInputPolicy'
   gamma: 0.98
   buffer_size: 200000
   learning_starts: 10000
