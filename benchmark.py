@@ -13,6 +13,9 @@ from rl_zoo3.utils import StoreDict, get_model_path
 env_names = ["footsteps-planning-right-withball-her-v0", "footsteps-planning-right-withball-v0"]
 step = 0
 
+foot_length = 0.14
+foot_width = 0.08
+
 # set_random_seed(0)
 max_episode_len = 90
 nb_tests = 10000
@@ -25,15 +28,37 @@ reset_dict_list = np.array([])
 episode_rewards_env1, episode_lengths_env1, walks_in_ball_env1, truncated_eps_env1 = np.array([]),np.array([]),np.array([]),np.array([])
 episode_rewards_env2, episode_lengths_env2, walks_in_ball_env2, truncated_eps_env2 = np.array([]),np.array([]),np.array([]),np.array([])
 
+def in_the_ball(foot_pose):
+    i=0
+    in_obstacle = np.zeros((4))
+    cos_theta = np.cos(foot_pose[2])
+    sin_theta = np.sin(foot_pose[2])
+    for sx in [-1, 1]:
+        for sy in [-1, 1]:
+            # One of the corners of feet is walking in the forbidden area, punishing this with negative reward
+            P_corner_foot = np.array([sx * foot_length / 2, sy * foot_width / 2])
+            P_corner_world = foot_pose[:2] + P_corner_foot[0] * np.array([cos_theta, sin_theta]) + P_corner_foot[1] * np.array([-sin_theta, cos_theta])
+            in_obstacle[i] = (np.linalg.norm(P_corner_world - np.array([0.3, 0]), axis=-1) < 0.15).astype(np.bool_)
+            i=i+1
+    return in_obstacle
+
 for i in range(nb_tests):
     
     reset_dict = {
         "start_foot_pose" : np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
         "start_support_foot" : "left" if (np.random.uniform(0, 1) > 0.5) else "right",
         "target_foot_pose" : None,
-        "target_support_foot" : None        
+        "target_support_foot" : None
     }
     
+    if ("withball" in env_names[0]) & ("withball" in env_names[1]):
+        start_foot_pose = np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi])
+
+        while in_the_ball(start_foot_pose).any():
+            start_foot_pose = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
+
+        reset_dict["start_foot_pose"] : start_foot_pose
+
     if ("multigoal" in env_names[0]) & ("multigoal" in env_names[1]):
         reset_dict["target_foot_pose"] = np.random.uniform([-2, -2, -1, -1], [2, 2, 1, 1])
         
@@ -80,7 +105,6 @@ for env_name in env_names:
         done = False
         
         while (not done) & (ep_len <= max_episode_len):
-            step += 1
             action, lstm_states = model.predict(obs,  deterministic=True) 
             
             obs, reward, done, truncated, infos = env.step(action)
@@ -89,7 +113,7 @@ for env_name in env_names:
 
             episode_reward += reward
             ep_len += 1
-            
+
             if reward == -10:
                 walk_in_ball = 1
                 
