@@ -198,7 +198,7 @@ footsteps-planning-her-v0: &footsteps-planning-her
   buffer_size: 200000
   learning_starts: 10000
   replay_buffer_class: HerReplayBuffer
-  replay_buffer_kwargs: "dict(n_sampled_goal=8,goal_selection_strategy='future')"
+  replay_buffer_kwargs: "dict(n_sampled_goal=8,goal_selection_strategy='future',copy_info_dict=True)"
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
