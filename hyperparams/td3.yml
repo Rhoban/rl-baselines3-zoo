@@ -165,7 +165,7 @@ Swimmer-v3:
 
 # Without HER
 footsteps-planning-v0: &footsteps-planning
-  n_timesteps: !!float 10e6
+  n_timesteps: !!float 10e7
   policy: 'MultiInputPolicy'
   gamma: 0.98
   buffer_size: 200000
@@ -210,7 +210,7 @@ footsteps-planning-any-obstacle-multigoal-v0:
 
 # With HER
 footsteps-planning-her-v0: &footsteps-planning-her
-  n_timesteps: !!float 10e6
+  n_timesteps: !!float 10e7
   policy: 'MultiInputPolicy'
   gamma: 0.98
   buffer_size: 200000
