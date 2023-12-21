@@ -10,15 +10,17 @@ from rl_zoo3 import ALGOS, create_test_env, get_saved_hyperparams
 from stable_baselines3.common.utils import set_random_seed
 from rl_zoo3.utils import StoreDict, get_model_path
 
-env_names = ["footsteps-planning-right-withball-her-v0", "footsteps-planning-right-withball-v0"]
+env_names = ["footsteps-planning-right-obstacle-multigoal-v0", "footsteps-planning-right-withball-multigoal-v0"]
+exp_nb = [1,3]
 step = 0
+obstacle_max_radius = 0.25
 
 foot_length = 0.14
 foot_width = 0.08
 
 # set_random_seed(0)
 max_episode_len = 90
-nb_tests = 10000
+nb_tests = 5000
 
 algo="td3"
 folder="logs"
@@ -28,18 +30,16 @@ reset_dict_list = np.array([])
 episode_rewards_env1, episode_lengths_env1, walks_in_ball_env1, truncated_eps_env1 = np.array([]),np.array([]),np.array([]),np.array([])
 episode_rewards_env2, episode_lengths_env2, walks_in_ball_env2, truncated_eps_env2 = np.array([]),np.array([]),np.array([]),np.array([])
 
-def in_the_ball(foot_pose):
-    i=0
-    in_obstacle = np.zeros((4))
+def in_obstacle(foot_pose, obstacle_radius):
+    in_obstacle = False
     cos_theta = np.cos(foot_pose[2])
     sin_theta = np.sin(foot_pose[2])
     for sx in [-1, 1]:
         for sy in [-1, 1]:
-            # One of the corners of feet is walking in the forbidden area, punishing this with negative reward
             P_corner_foot = np.array([sx * foot_length / 2, sy * foot_width / 2])
             P_corner_world = foot_pose[:2] + P_corner_foot[0] * np.array([cos_theta, sin_theta]) + P_corner_foot[1] * np.array([-sin_theta, cos_theta])
-            in_obstacle[i] = (np.linalg.norm(P_corner_world - np.array([0.3, 0]), axis=-1) < 0.15).astype(np.bool_)
-            i=i+1
+            if np.linalg.norm(P_corner_world - np.array([0.3, 0]), axis=-1) < obstacle_radius:
+                in_obstacle = True
     return in_obstacle
 
 for i in range(nb_tests):
@@ -48,38 +48,50 @@ for i in range(nb_tests):
         "start_foot_pose" : np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
         "start_support_foot" : "left" if (np.random.uniform(0, 1) > 0.5) else "right",
         "target_foot_pose" : None,
-        "target_support_foot" : None
+        "target_support_foot" : None,
+        "obstacle_radius" : None
     }
-    
-    if ("withball" in env_names[0]) & ("withball" in env_names[1]):
+
+    if ("obstacle" in env_names[0]) & ("obstacle" in env_names[1]):
+        reset_dict["obstacle_radius"] = np.random.uniform(0, obstacle_max_radius)
+
+    if ("withball" in env_names[0]) | ("withball" in env_names[1]):
+        reset_dict["obstacle_radius"] = 0.15
+
+    if (("withball" in env_names[0])|("obstacle" in env_names[0])) & (("withball" in env_names[1])|("obstacle" in env_names[1])):
         start_foot_pose = np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi])
 
-        while in_the_ball(start_foot_pose).any():
+        while in_obstacle(start_foot_pose, reset_dict["obstacle_radius"]):
             start_foot_pose = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
 
-        reset_dict["start_foot_pose"] : start_foot_pose
+        reset_dict["start_foot_pose"] = start_foot_pose
 
     if ("multigoal" in env_names[0]) & ("multigoal" in env_names[1]):
-        reset_dict["target_foot_pose"] = np.random.uniform([-2, -2, -1, -1], [2, 2, 1, 1])
+        target_foot_pose = np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi])
+
+        while in_obstacle(start_foot_pose, reset_dict["obstacle_radius"]):
+            target_foot_pose = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
+
+        reset_dict["target_foot_pose"] = target_foot_pose
         
     if ("right" in env_names[0]) | ("right" in env_names[1]): 
-        reset_dict["target_foot_pose"] = np.array([0, 0, 1, 0])
+        reset_dict["target_foot_pose"] = np.array([0, 0, 0])
         reset_dict["target_support_foot"] = "right"
-        
+          
     if ("left" in env_names[0]) | ("left" in env_names[1]): 
-        reset_dict["target_foot_pose"] = np.array([0, 0, 1, 0])
+        reset_dict["target_foot_pose"] = np.array([0, 0, 0])
         reset_dict["target_support_foot"] = "left"
         
     reset_dict_list = np.append(reset_dict_list, reset_dict)
     
-for env_name in env_names:
+for env_name, exp_nb in zip(env_names, exp_nb):
 
-    print(f"Environment: {env_name}")
+    print(f"Environment Name: {env_name}, Experiment Number: {exp_nb}")
 
     env = gymnasium.make(env_name, disable_env_checker=True)
 
     _, model_path, log_path = get_model_path(
-        0,
+        exp_nb,
         folder,
         algo,
         env_name,
@@ -94,7 +106,6 @@ for env_name in env_names:
 
     model = ALGOS["td3"].load(model_path, device="auto", **parameters)
 
-    
     for reset_dict in tqdm(reset_dict_list):
         obs, infos = env.reset(options=reset_dict)
         episode_reward = 0.0
@@ -114,16 +125,14 @@ for env_name in env_names:
             episode_reward += reward
             ep_len += 1
 
-            if reward == -10:
+            if reward <= -10:
                 walk_in_ball = 1
                 
             if (not done) & (ep_len==max_episode_len):
                 truncated_ep = 1
-                    
-            if done :
-                # print(f"Episode Reward: {episode_reward:.2f}")
-                # print("Episode Length", ep_len)
 
+            if done | (ep_len==max_episode_len) :
+                
                 if env_name == env_names[0]:
                     walks_in_ball_env1 = np.append(walks_in_ball_env1,walk_in_ball)
                     truncated_eps_env1 = np.append(truncated_eps_env1,truncated_ep)
@@ -134,7 +143,7 @@ for env_name in env_names:
                     truncated_eps_env2 = np.append(truncated_eps_env2,truncated_ep)
                     episode_rewards_env2 = np.append(episode_rewards_env2,episode_reward)
                     episode_lengths_env2 = np.append(episode_lengths_env2,ep_len)
-
+            
 compare_episode_lengths = episode_lengths_env1 - episode_lengths_env2
 
 env2_better_ones = np.zeros(compare_episode_lengths.shape)
