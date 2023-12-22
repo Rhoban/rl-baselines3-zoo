@@ -165,7 +165,7 @@ Swimmer-v3:
 
 # Without HER
 footsteps-planning-v0: &footsteps-planning
-  n_timesteps: !!float 20e6
+  n_timesteps: !!float 10e6
   policy: 'MultiInputPolicy'
   gamma: 0.98
   buffer_size: 200000
@@ -174,8 +174,8 @@ footsteps-planning-v0: &footsteps-planning
   noise_std: 0.1
   gradient_steps: -1
   train_freq: [1, "episode"]
-  learning_rate: !!float 1e-3
-  policy_kwargs: "dict(net_arch=[400, 300])"
+  learning_rate: lin_1e-3
+  policy_kwargs: "dict(net_arch=[400, 300],activation_fn=nn.LeakyReLU)"
 
 footsteps-planning-right-v0:
     <<: *footsteps-planning
@@ -210,7 +210,7 @@ footsteps-planning-any-obstacle-multigoal-v0:
 
 # With HER
 footsteps-planning-her-v0: &footsteps-planning-her
-  n_timesteps: !!float 20e6
+  n_timesteps: !!float 10e6
   policy: 'MultiInputPolicy'
   gamma: 0.98
   buffer_size: 200000
@@ -221,7 +221,7 @@ footsteps-planning-her-v0: &footsteps-planning-her
   noise_std: 0.1
   gradient_steps: -1
   train_freq: [1, "episode"]
-  learning_rate: !!float 1e-3
+  learning_rate: lin_1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 footsteps-planning-right-her-v0:

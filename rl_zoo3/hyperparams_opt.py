@@ -290,13 +290,14 @@ def sample_td3_params(trial: optuna.Trial) -> Dict[str, Any]:
     noise_std = trial.suggest_float("noise_std", 0, 1)
 
     # NOTE: Add "verybig" to net_arch when tuning HER
-    net_arch = trial.suggest_categorical("net_arch", ["small", "medium", "big"])
-    # activation_fn = trial.suggest_categorical('activation_fn', [nn.Tanh, nn.ReLU, nn.ELU, nn.LeakyReLU])
+    net_arch = trial.suggest_categorical("net_arch", ["small", "medium", "big", "enormous"])
+    activation_fn = trial.suggest_categorical('activation_fn', [nn.Tanh, nn.ReLU, nn.ELU, nn.LeakyReLU])
 
     net_arch = {
         "small": [64, 64],
         "medium": [256, 256],
         "big": [400, 300],
+        "enormous":[512,512]
         # Uncomment for tuning HER
         # "verybig": [256, 256, 256],
     }[net_arch]
@@ -308,7 +309,7 @@ def sample_td3_params(trial: optuna.Trial) -> Dict[str, Any]:
         "buffer_size": buffer_size,
         "train_freq": train_freq,
         "gradient_steps": gradient_steps,
-        "policy_kwargs": dict(net_arch=net_arch),
+        "policy_kwargs": dict(net_arch=net_arch, activation_fn=activation_fn),
         "tau": tau,
     }
 
