@@ -10,9 +10,10 @@ from rl_zoo3 import ALGOS, create_test_env, get_saved_hyperparams
 from stable_baselines3.common.utils import set_random_seed
 from rl_zoo3.utils import StoreDict, get_model_path
 
-env_names = ["footsteps-planning-right-obstacle-multigoal-v0", "footsteps-planning-right-withball-multigoal-v0"]
-exp_nb = [1,3]
-step = 0
+env_names = ["footsteps-planning-right-withball-multigoal-v0", "footsteps-planning-right-withball-multigoal-v0"]
+exp_nbs = [3,1]
+algos=["td3","sac"]
+
 obstacle_max_radius = 0.25
 
 foot_length = 0.14
@@ -20,10 +21,11 @@ foot_width = 0.08
 
 # set_random_seed(0)
 max_episode_len = 90
-nb_tests = 5000
+nb_tests = 100
 
-algo="td3"
 folder="logs"
+
+saved_filename = f"logs/npy_bench/{env_names[0][19:]}_{exp_nbs[0]}_{algos[0]}_vs_{env_names[1][19:]}_{exp_nbs[1]}_{algos[1]}_{nb_tests}.npz"
 
 reset_dict_list = np.array([])
 
@@ -42,109 +44,118 @@ def in_obstacle(foot_pose, obstacle_radius):
                 in_obstacle = True
     return in_obstacle
 
-for i in range(nb_tests):
-    
-    reset_dict = {
-        "start_foot_pose" : np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
-        "start_support_foot" : "left" if (np.random.uniform(0, 1) > 0.5) else "right",
-        "target_foot_pose" : None,
-        "target_support_foot" : None,
-        "obstacle_radius" : None
-    }
+if os.path.isfile(saved_filename):
+    print("Already done")
+    npzfile = np.load(saved_filename,allow_pickle=True)
+    compare_episode_lengths = npzfile['arr_0']
+    reset_dict_list = npzfile['arr_1']
+    nb_tests = compare_episode_lengths.shape[0]
 
-    if ("obstacle" in env_names[0]) & ("obstacle" in env_names[1]):
-        reset_dict["obstacle_radius"] = np.random.uniform(0, obstacle_max_radius)
-
-    if ("withball" in env_names[0]) | ("withball" in env_names[1]):
-        reset_dict["obstacle_radius"] = 0.15
-
-    if (("withball" in env_names[0])|("obstacle" in env_names[0])) & (("withball" in env_names[1])|("obstacle" in env_names[1])):
-        start_foot_pose = np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi])
-
-        while in_obstacle(start_foot_pose, reset_dict["obstacle_radius"]):
-            start_foot_pose = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
-
-        reset_dict["start_foot_pose"] = start_foot_pose
-
-    if ("multigoal" in env_names[0]) & ("multigoal" in env_names[1]):
-        target_foot_pose = np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi])
-
-        while in_obstacle(start_foot_pose, reset_dict["obstacle_radius"]):
-            target_foot_pose = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
-
-        reset_dict["target_foot_pose"] = target_foot_pose
+else :
+    for i in range(nb_tests):
         
-    if ("right" in env_names[0]) | ("right" in env_names[1]): 
-        reset_dict["target_foot_pose"] = np.array([0, 0, 0])
-        reset_dict["target_support_foot"] = "right"
-          
-    if ("left" in env_names[0]) | ("left" in env_names[1]): 
-        reset_dict["target_foot_pose"] = np.array([0, 0, 0])
-        reset_dict["target_support_foot"] = "left"
-        
-    reset_dict_list = np.append(reset_dict_list, reset_dict)
-    
-for env_name, exp_nb in zip(env_names, exp_nb):
+        reset_dict = {
+            "start_foot_pose" : np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
+            "start_support_foot" : "left" if (np.random.uniform(0, 1) > 0.5) else "right",
+            "target_foot_pose" : None,
+            "target_support_foot" : None,
+            "obstacle_radius" : None
+        }
 
-    print(f"Environment Name: {env_name}, Experiment Number: {exp_nb}")
+        if ("obstacle" in env_names[0]) & ("obstacle" in env_names[1]):
+            reset_dict["obstacle_radius"] = np.random.uniform(0, obstacle_max_radius)
 
-    env = gymnasium.make(env_name, disable_env_checker=True)
+        if ("withball" in env_names[0]) | ("withball" in env_names[1]):
+            reset_dict["obstacle_radius"] = 0.15
 
-    _, model_path, log_path = get_model_path(
-        exp_nb,
-        folder,
-        algo,
-        env_name,
-        True, #load-best
-        False, #load-checkpoint
-        False, #load-last-checkpoint
-    )
+        if (("withball" in env_names[0])|("obstacle" in env_names[0])) & (("withball" in env_names[1])|("obstacle" in env_names[1])):
+            start_foot_pose = np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi])
 
-    parameters = {
-        'env': env,
-    }
+            while in_obstacle(start_foot_pose, reset_dict["obstacle_radius"]):
+                start_foot_pose = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
 
-    model = ALGOS["td3"].load(model_path, device="auto", **parameters)
+            reset_dict["start_foot_pose"] = start_foot_pose
 
-    for reset_dict in tqdm(reset_dict_list):
-        obs, infos = env.reset(options=reset_dict)
-        episode_reward = 0.0
-        ep_len = 0
-        walk_in_ball = 0
-        truncated_ep = 0
+        if ("multigoal" in env_names[0]) & ("multigoal" in env_names[1]):
+            target_foot_pose = np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi])
 
-        done = False
-        
-        while (not done) & (ep_len <= max_episode_len):
-            action, lstm_states = model.predict(obs,  deterministic=True) 
+            while in_obstacle(start_foot_pose, reset_dict["obstacle_radius"]):
+                target_foot_pose = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
+
+            reset_dict["target_foot_pose"] = target_foot_pose
             
-            obs, reward, done, truncated, infos = env.step(action)
+        if ("right" in env_names[0]) | ("right" in env_names[1]): 
+            reset_dict["target_foot_pose"] = np.array([0, 0, 0])
+            reset_dict["target_support_foot"] = "right"
             
-            episode_start = done
+        if ("left" in env_names[0]) | ("left" in env_names[1]): 
+            reset_dict["target_foot_pose"] = np.array([0, 0, 0])
+            reset_dict["target_support_foot"] = "left"
+            
+        reset_dict_list = np.append(reset_dict_list, reset_dict)
+        
+    for env_name, exp_nb, algo in zip(env_names, exp_nbs, algos):
 
-            episode_reward += reward
-            ep_len += 1
+        print(f"Env. Name: {env_name}, Exp. Number: {exp_nb}, Algo: {algo}")
 
-            if reward <= -10:
-                walk_in_ball = 1
+        env = gymnasium.make(env_name, disable_env_checker=True)
+
+        _, model_path, log_path = get_model_path(
+            exp_nb,
+            folder,
+            algo,
+            env_name,
+            True, #load-best
+            False, #load-checkpoint
+            False, #load-last-checkpoint
+        )
+
+        parameters = {
+            'env': env,
+        }
+
+        model = ALGOS[algo].load(model_path, device="auto", **parameters)
+
+        for reset_dict in tqdm(reset_dict_list):
+            obs, infos = env.reset(options=reset_dict)
+            episode_reward = 0.0
+            ep_len = 0
+            walk_in_ball = 0
+            truncated_ep = 0
+            done = False
+            
+            while (not done) & (ep_len < max_episode_len):
+                action, lstm_states = model.predict(obs,  deterministic=True) 
                 
-            if (not done) & (ep_len==max_episode_len):
-                truncated_ep = 1
+                obs, reward, done, truncated, infos = env.step(action)
 
-            if done | (ep_len==max_episode_len) :
-                
-                if env_name == env_names[0]:
-                    walks_in_ball_env1 = np.append(walks_in_ball_env1,walk_in_ball)
-                    truncated_eps_env1 = np.append(truncated_eps_env1,truncated_ep)
-                    episode_rewards_env1 = np.append(episode_rewards_env1,episode_reward)
-                    episode_lengths_env1 = np.append(episode_lengths_env1,ep_len)
-                elif env_name == env_names[1]:
-                    walks_in_ball_env2 = np.append(walks_in_ball_env2,walk_in_ball)
-                    truncated_eps_env2 = np.append(truncated_eps_env2,truncated_ep)
-                    episode_rewards_env2 = np.append(episode_rewards_env2,episode_reward)
-                    episode_lengths_env2 = np.append(episode_lengths_env2,ep_len)
-            
-compare_episode_lengths = episode_lengths_env1 - episode_lengths_env2
+                episode_start = done
+
+                episode_reward += reward
+                ep_len += 1
+
+                if reward <= -10:
+                    walk_in_ball = 1
+                    
+                if (not done) & (ep_len==max_episode_len):
+                    truncated_ep = 1
+
+                if done | (ep_len==max_episode_len) :
+                    
+                    if (env_name, exp_nb, algo) == (env_names[0], exp_nbs[0], algos[0]):
+                        walks_in_ball_env1 = np.append(walks_in_ball_env1,walk_in_ball)
+                        truncated_eps_env1 = np.append(truncated_eps_env1,truncated_ep)
+                        episode_rewards_env1 = np.append(episode_rewards_env1,episode_reward)
+                        episode_lengths_env1 = np.append(episode_lengths_env1,ep_len)
+
+                    elif (env_name, exp_nb, algo) == (env_names[1], exp_nbs[1], algos[1]):
+                        walks_in_ball_env2 = np.append(walks_in_ball_env2,walk_in_ball)
+                        truncated_eps_env2 = np.append(truncated_eps_env2,truncated_ep)
+                        episode_rewards_env2 = np.append(episode_rewards_env2,episode_reward)
+                        episode_lengths_env2 = np.append(episode_lengths_env2,ep_len)
+
+    compare_episode_lengths = episode_lengths_env1 - episode_lengths_env2
+    np.savez(saved_filename, compare_episode_lengths, reset_dict_list)
 
 env2_better_ones = np.zeros(compare_episode_lengths.shape)
 env1_better_ones = np.zeros(compare_episode_lengths.shape)
@@ -159,11 +170,11 @@ env2_better_mean = np.sum(compare_episode_lengths[compare_episode_lengths > 0])/
 env1_better_mean = -np.sum(compare_episode_lengths[compare_episode_lengths < 0])/env1_better_sum
 
 print(f"Number of tests : {nb_tests}")
-print(f"{env_names[0]}------")
+print(f"{env_names[0]}_{exp_nbs[0]}_{algos[0]}------")
 print(f"    better in {(env1_better_sum*100)/nb_tests}% of the tests with a mean of {env1_better_mean} less steps than the other environment")
 print(f"    walks in ball in {(np.sum(walks_in_ball_env1)*100)/nb_tests}% of the tests")
 print(f"    truncated in {(np.sum(truncated_eps_env1)*100)/nb_tests}% of the tests")
-print(f"{env_names[1]}------")
+print(f"{env_names[1]}_{exp_nbs[1]}_{algos[1]}------")
 print(f"    better in {(env2_better_sum*100)/nb_tests}% of the tests with a mean of {env2_better_mean} less steps than the other environment")
 print(f"    walks in ball in {(np.sum(walks_in_ball_env2)*100)/nb_tests}% of the tests")
 print(f"    truncated in {(np.sum(truncated_eps_env2)*100)/nb_tests}% of the tests")
