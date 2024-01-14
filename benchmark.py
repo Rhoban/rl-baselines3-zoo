@@ -9,6 +9,7 @@ import numpy as np
 from rl_zoo3 import ALGOS, create_test_env, get_saved_hyperparams
 from stable_baselines3.common.utils import set_random_seed
 from rl_zoo3.utils import StoreDict, get_model_path
+import matplotlib.pyplot as plt
 
 env_names = ["footsteps-planning-right-withball-multigoal-v0", "footsteps-planning-right-withball-multigoal-v0"]
 exp_nbs = [3,1]
@@ -21,7 +22,7 @@ foot_width = 0.08
 
 # set_random_seed(0)
 max_episode_len = 90
-nb_tests = 100
+nb_tests = 500
 
 folder="logs"
 
@@ -47,9 +48,10 @@ def in_obstacle(foot_pose, obstacle_radius):
 if os.path.isfile(saved_filename):
     print("Already done")
     npzfile = np.load(saved_filename,allow_pickle=True)
-    compare_episode_lengths = npzfile['arr_0']
-    reset_dict_list = npzfile['arr_1']
-    nb_tests = compare_episode_lengths.shape[0]
+    episode_lengths_env1 = npzfile['arr_0']
+    episode_lengths_env2 = npzfile['arr_1']
+    reset_dict_list = npzfile['arr_2']
+    nb_tests = episode_lengths_env1.shape[0]
 
 else :
     for i in range(nb_tests):
@@ -61,6 +63,14 @@ else :
             "target_support_foot" : None,
             "obstacle_radius" : None
         }
+
+        if ("right" in env_names[0]) | ("right" in env_names[1]): 
+            reset_dict["target_foot_pose"] = np.array([0, 0, 0])
+            reset_dict["target_support_foot"] = "right"
+            
+        if ("left" in env_names[0]) | ("left" in env_names[1]): 
+            reset_dict["target_foot_pose"] = np.array([0, 0, 0])
+            reset_dict["target_support_foot"] = "left"
 
         if ("obstacle" in env_names[0]) & ("obstacle" in env_names[1]):
             reset_dict["obstacle_radius"] = np.random.uniform(0, obstacle_max_radius)
@@ -81,16 +91,8 @@ else :
 
             while in_obstacle(start_foot_pose, reset_dict["obstacle_radius"]):
                 target_foot_pose = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
-
+            
             reset_dict["target_foot_pose"] = target_foot_pose
-            
-        if ("right" in env_names[0]) | ("right" in env_names[1]): 
-            reset_dict["target_foot_pose"] = np.array([0, 0, 0])
-            reset_dict["target_support_foot"] = "right"
-            
-        if ("left" in env_names[0]) | ("left" in env_names[1]): 
-            reset_dict["target_foot_pose"] = np.array([0, 0, 0])
-            reset_dict["target_support_foot"] = "left"
             
         reset_dict_list = np.append(reset_dict_list, reset_dict)
         
@@ -134,6 +136,8 @@ else :
                 episode_reward += reward
                 ep_len += 1
 
+                # env.render()
+
                 if reward <= -10:
                     walk_in_ball = 1
                     
@@ -155,7 +159,7 @@ else :
                         episode_lengths_env2 = np.append(episode_lengths_env2,ep_len)
 
     compare_episode_lengths = episode_lengths_env1 - episode_lengths_env2
-    np.savez(saved_filename, compare_episode_lengths, reset_dict_list)
+    np.savez(saved_filename, episode_lengths_env1, episode_lengths_env2, reset_dict_list)
 
 env2_better_ones = np.zeros(compare_episode_lengths.shape)
 env1_better_ones = np.zeros(compare_episode_lengths.shape)
@@ -180,3 +184,16 @@ print(f"    walks in ball in {(np.sum(walks_in_ball_env2)*100)/nb_tests}% of the
 print(f"    truncated in {(np.sum(truncated_eps_env2)*100)/nb_tests}% of the tests")
 print("-------------")
 print(f"Same number of steps for both envs in {((nb_tests - (env1_better_sum + env2_better_sum))*100)/nb_tests}% of the tests")
+
+print(f"Mean nb of steps {env_names[0]} : {np.mean(episode_lengths_env1)}")
+print(f"Mean nb of steps {env_names[1]} : {np.mean(episode_lengths_env2)}")
+
+#Trace the bargraph of the difference of episode lengths for each test
+plt.figure()
+plt.hist(compare_episode_lengths, bins=60)
+plt.title(f"Episode length difference between {env_names[0]}_{exp_nbs[0]}_{algos[0]} and {env_names[1]}_{exp_nbs[1]}_{algos[1]}")
+plt.xlabel("Test number")
+plt.ylabel("Episode length difference")
+plt.grid()
+plt.savefig(f"logs/graphs/{env_names[0][19:]}_{exp_nbs[0]}_{algos[0]}_vs_{env_names[1][19:]}_{exp_nbs[1]}_{algos[1]}_{nb_tests}_diff.png", dpi=1000)
+plt.show() 
