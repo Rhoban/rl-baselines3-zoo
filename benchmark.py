@@ -11,8 +11,8 @@ from stable_baselines3.common.utils import set_random_seed
 from rl_zoo3.utils import StoreDict, get_model_path
 import matplotlib.pyplot as plt
 
-env_names = ["footsteps-planning-right-withball-multigoal-v0", "footsteps-planning-right-withball-multigoal-v0"]
-exp_nbs = [3,1]
+env_names = ["footsteps-planning-right-v0", "footsteps-planning-right-v0"]
+exp_nbs = [1,1]
 algos=["td3","sac"]
 
 obstacle_max_radius = 0.25
@@ -21,7 +21,7 @@ foot_length = 0.14
 foot_width = 0.08
 
 # set_random_seed(0)
-max_episode_len = 90
+max_episode_len = 70
 nb_tests = 500
 
 folder="logs"
@@ -65,20 +65,25 @@ else :
         }
 
         if ("right" in env_names[0]) | ("right" in env_names[1]): 
+            max_episode_len = 50
             reset_dict["target_foot_pose"] = np.array([0, 0, 0])
             reset_dict["target_support_foot"] = "right"
             
         if ("left" in env_names[0]) | ("left" in env_names[1]): 
+            max_episode_len = 50
             reset_dict["target_foot_pose"] = np.array([0, 0, 0])
             reset_dict["target_support_foot"] = "left"
 
         if ("obstacle" in env_names[0]) & ("obstacle" in env_names[1]):
+            max_episode_len = 90
             reset_dict["obstacle_radius"] = np.random.uniform(0, obstacle_max_radius)
 
         if ("withball" in env_names[0]) | ("withball" in env_names[1]):
+            max_episode_len = 90
             reset_dict["obstacle_radius"] = 0.15
 
         if (("withball" in env_names[0])|("obstacle" in env_names[0])) & (("withball" in env_names[1])|("obstacle" in env_names[1])):
+            max_episode_len = 90
             start_foot_pose = np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi])
 
             while in_obstacle(start_foot_pose, reset_dict["obstacle_radius"]):
