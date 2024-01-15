@@ -335,3 +335,49 @@ footsteps-planning-left-obstacle-multigoal-v0:
     <<: *footsteps-planning              
 footsteps-planning-any-obstacle-multigoal-v0:
     <<: *footsteps-planning
+
+
+# With HER
+footsteps-planning-her-v0: &footsteps-planning-her
+  n_timesteps: !!float 10e6
+  policy: 'MultiInputPolicy'
+  buffer_size: 100000
+  batch_size: 256
+  ent_coef: 'auto'
+  train_freq: 1
+  gradient_steps: 1
+  learning_starts: 10000
+  policy_kwargs: "dict(net_arch=[400, 300, 300])"
+  replay_buffer_class: HerReplayBuffer
+  replay_buffer_kwargs: "dict(n_sampled_goal=8,goal_selection_strategy='future',copy_info_dict=True)"
+
+footsteps-planning-right-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-left-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-any-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-right-withball-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-left-withball-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-any-withball-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-right-multigoal-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-left-multigoal-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-any-multigoal-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-right-withball-multigoal-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-left-withball-multigoal-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-any-withball-multigoal-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-right-obstacle-multigoal-her-v0:
+    <<: *footsteps-planning-her
+footsteps-planning-left-obstacle-multigoal-her-v0:
+    <<: *footsteps-planning-her                
+footsteps-planning-any-obstacle-multigoal-her-v0:
+    <<: *footsteps-planning-her
