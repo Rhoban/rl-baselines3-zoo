@@ -24,6 +24,7 @@ foot_width = 0.08
 radius_arround_obstacle = 0.3
 obstacle_coordinates = [0.3, 0]
 
+
 def in_obstacle(foot_pose, obstacle_radius):
     in_obstacle = False
     cos_theta = np.cos(foot_pose[2])
@@ -40,6 +41,7 @@ def in_obstacle(foot_pose, obstacle_radius):
                 in_obstacle = True
     return in_obstacle
 
+
 for i in range(nb_tests):
     # for theta in np.arange(0, 360, 22.5):
     reset_dict_angles = np.array([])
@@ -49,19 +51,21 @@ for i in range(nb_tests):
         "start_support_foot": "left" if (np.random.uniform(0, 1) > 0.5) else "right",
         "target_foot_pose": None,
         "target_support_foot": "right" if (np.random.uniform(0, 1) > 0.5) else "left",
-        "obstacle_radius":0.15,
+        "obstacle_radius": 0.15,
     }
 
     while in_obstacle(reset_dict["start_foot_pose"], reset_dict["obstacle_radius"]):
         reset_dict["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
 
-    for theta in (45,22.5,0,-22.5,-45):
-        x = obstacle_coordinates[0]+radius_arround_obstacle*np.cos(np.deg2rad(180-theta))
-        y = obstacle_coordinates[1]+radius_arround_obstacle*np.sin(np.deg2rad(180-theta))
+    for theta in (-45, 0, 45):
+        for foot in ("left", "right"):
+            x = obstacle_coordinates[0] + radius_arround_obstacle * np.cos(np.deg2rad(180 - theta))
+            y = obstacle_coordinates[1] + radius_arround_obstacle * np.sin(np.deg2rad(180 - theta))
 
-        reset_dict["target_foot_pose"] = [x, y, np.deg2rad(-theta)]
+            reset_dict["target_foot_pose"] = [x, y, np.deg2rad(-theta)]
+            reset_dict["target_support_foot"] = foot
 
-        reset_dict_angles = np.append(reset_dict_angles, reset_dict.copy())
+            reset_dict_angles = np.append(reset_dict_angles, reset_dict.copy())
 
     reset_dict_list.append(reset_dict_angles)
 print(f"Reset Dict: {len(reset_dict_list)}")
@@ -89,8 +93,6 @@ parameters = {
 model = ALGOS[algo].load(model_path, device="cuda", **parameters)
 
 
-
-
 for reset_dict_exp in tqdm(reset_dict_list):
     critic_value_list = np.array([])
     total_step_list = np.array([])
@@ -101,12 +103,12 @@ for reset_dict_exp in tqdm(reset_dict_list):
         total_reward = 0
         total_step = 0
         # env.render()
-        while (not done):
+        while not done:
             action, lstm_states = model.predict(obs, deterministic=True)
             obs, reward, done, truncated, infos = env.step(action)
             if total_step == 0:
-                obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])).to('cuda'))
-                action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])).to('cuda'))
+                obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])).to("cuda"))
+                action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])).to("cuda"))
                 critic_value = critic(obs_tensor, action_tensor)[0].item()
             total_reward += reward
 
@@ -115,17 +117,17 @@ for reset_dict_exp in tqdm(reset_dict_list):
 
         critic_value_list = np.append(critic_value_list, critic_value)
         total_step_list = np.append(total_step_list, total_step)
-    
+
     index_min_total_step = np.argmin(total_step_list)
     index_min_critic = np.argmax(critic_value_list)
 
-    if(index_min_total_step != index_min_critic):
+    if index_min_total_step != index_min_critic:
         more_steps = total_step_list[index_min_critic] - total_step_list[index_min_total_step]
         if more_steps != 0:
-            more_steps_array = np.append(more_steps_array, total_step_list[index_min_critic] - total_step_list[index_min_total_step])
+            more_steps_array = np.append(
+                more_steps_array, total_step_list[index_min_critic] - total_step_list[index_min_total_step]
+            )
 
 mean_more_steps = np.mean(more_steps_array)
 print(f"Mean More Steps: {mean_more_steps}, Pourcentage error: {more_steps_array.shape[0]*100/nb_tests}%")
 print(f"More Steps: {more_steps_array}")
-
-    
