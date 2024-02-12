@@ -18,6 +18,7 @@ reset_dict_list = []
 more_steps_array = np.array([])
 
 nb_tests = 1000
+max_episode_len = 90
 
 foot_length = 0.14
 foot_width = 0.08
@@ -50,7 +51,7 @@ for i in range(nb_tests):
         "start_foot_pose": np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
         "start_support_foot": "left" if (np.random.uniform(0, 1) > 0.5) else "right",
         "target_foot_pose": None,
-        "target_support_foot": "right" if (np.random.uniform(0, 1) > 0.5) else "left",
+        "target_support_foot": "left" if (np.random.uniform(0, 1) > 0.5) else "right",
         "obstacle_radius": 0.15,
     }
 
@@ -103,7 +104,7 @@ for reset_dict_exp in tqdm(reset_dict_list):
         total_reward = 0
         total_step = 0
         # env.render()
-        while not done:
+        while (not done) & (total_step < max_episode_len):
             action, lstm_states = model.predict(obs, deterministic=True)
             obs, reward, done, truncated, infos = env.step(action)
             if total_step == 0:
