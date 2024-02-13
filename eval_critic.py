@@ -25,45 +25,6 @@ foot_width = 0.08
 radius_arround_obstacle = 0.3
 obstacle_coordinates = [0.3, 0]
 
-def get_reset_dict_list(situation: int, nb_tests:int = 1000, lr:bool = False) -> list:
-    reset_dict_list = []
-    for _ in range(nb_tests):
-        reset_dict_init = {
-            "start_foot_pose": np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
-            "start_support_foot": "left" if (np.random.uniform(0, 1) > 0.5) else "right",
-            "target_foot_pose": None,
-            "target_support_foot": "right",
-            "obstacle_radius": None,
-        }
-        while in_obstacle(reset_dict["start_foot_pose"], reset_dict["obstacle_radius"]):
-            reset_dict_init["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
-
-        if situation == 1:
-            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
-            reset_dict_init["obstacle_radius"] = 0
-        elif situation == 2:
-            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
-            reset_dict_init["obstacle_radius"] = 0
-        elif situation == 3:
-            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
-            reset_dict_init["obstacle_radius"] = 0.15
-        elif situation == 4:
-            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
-            reset_dict_init["obstacle_radius"] = 0.15
-        elif situation == 5:
-            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
-            reset_dict_init["obstacle_radius"] = 0.25
-        elif situation == 6:
-            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
-            reset_dict_init["obstacle_radius"] = 0.25
-
-        if lr:
-            for foot in ("left", "right"):
-                reset_dict["target_support_foot"] = foot
-
-        reset_dict_list.append(reset_dict)
-    return reset_dict_list
-
 def in_obstacle(foot_pose, obstacle_radius):
     in_obstacle = False
     cos_theta = np.cos(foot_pose[2])
@@ -80,33 +41,93 @@ def in_obstacle(foot_pose, obstacle_radius):
                 in_obstacle = True
     return in_obstacle
 
+def rotation_arround_obstacle(theta: float, center:list = obstacle_coordinates, radius:float = radius_arround_obstacle) -> list:
+    x = center[0] + radius * np.cos(np.deg2rad(180 - theta))
+    y = center[1] + radius * np.sin(np.deg2rad(180 - theta))
+    return [x, y, np.deg2rad(-theta)]
 
-for _ in range(nb_tests):
-    reset_dict_angles = np.array([])
+def get_reset_dict_list(situation: int, nb_tests:int = 1000, lr:bool = False) -> list:
+    reset_dict_list = []
+    reset_dict_dthetadxdy = np.array([])
 
-    reset_dict = {
-        "start_foot_pose": np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
-        "start_support_foot": "left" if (np.random.uniform(0, 1) > 0.5) else "right",
-        "target_foot_pose": None,
-        "target_support_foot": "left" if (np.random.uniform(0, 1) > 0.5) else "right",
-        "obstacle_radius": 0.15,
-    }
+    for _ in range(nb_tests):
+        reset_dict_init = {
+            "start_foot_pose": np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
+            "start_support_foot": "left" if (np.random.uniform(0, 1) > 0.5) else "right",
+            "target_foot_pose": None,
+            "target_support_foot": None,
+            "obstacle_radius": None,
+        }
 
-    while in_obstacle(reset_dict["start_foot_pose"], reset_dict["obstacle_radius"]):
-        reset_dict["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
+        if situation == 1:
+            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
+            reset_dict_init["obstacle_radius"] = 0
+        elif situation == 2:
+            reset_dict_init["target_foot_pose"] = [0., 1., math.pi]
+            reset_dict_init["obstacle_radius"] = 0
+        elif situation == 3:
+            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
+            reset_dict_init["obstacle_radius"] = 0.15
+        elif situation == 4:
+            reset_dict_init["target_foot_pose"] = [0., 1., math.pi]
+            reset_dict_init["obstacle_radius"] = 0.15
+        elif situation == 5:
+            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
+            reset_dict_init["obstacle_radius"] = 0.25
+        elif situation == 6:
+            reset_dict_init["target_foot_pose"] = [0., 1., math.pi]
+            reset_dict_init["obstacle_radius"] = 0.25
 
-    for theta in (-45, 0, 45):
-        for foot in ("left", "right"):
-            x = obstacle_coordinates[0] + radius_arround_obstacle * np.cos(np.deg2rad(180 - theta))
-            y = obstacle_coordinates[1] + radius_arround_obstacle * np.sin(np.deg2rad(180 - theta))
+        while in_obstacle(reset_dict_init["start_foot_pose"], reset_dict_init["obstacle_radius"]):
+            reset_dict_init["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
 
-            reset_dict["target_foot_pose"] = [x, y, np.deg2rad(-theta)]
-            reset_dict["target_support_foot"] = foot
+        if lr:
+            foot = ["left", "right"]
+        else:
+            foot = ["right"]
+        x_situation = reset_dict_init["target_foot_pose"][0]
+        x_situation = reset_dict_init["target_foot_pose"][1]
+        theta_situation = reset_dict_init["target_foot_pose"][2]
+        for foot in foot:
+            for dtheta in (-45, 0, 45):
+                for dx,dy in [(0, 0), (0, 0.1), (0.1, 0.1)]:
+                    reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(theta_situation+dtheta, [x_situation+dx, x_situation+dy])
+                    reset_dict_init["target_support_foot"] = foot
+                    reset_dict_dthetadxdy = np.append(reset_dict_dthetadxdy, reset_dict_init.copy())
 
-            reset_dict_angles = np.append(reset_dict_angles, reset_dict.copy())
+        reset_dict_list.append(reset_dict_dthetadxdy)
+    return reset_dict_list
 
-    reset_dict_list.append(reset_dict_angles)
-print(f"Reset Dict: {len(reset_dict_list)}")
+reset_dict_list = get_reset_dict_list(2, 100, True)
+print(reset_dict_list)
+
+
+# for _ in range(nb_tests):
+#     reset_dict_angles = np.array([])
+
+#     reset_dict = {
+#         "start_foot_pose": np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
+#         "start_support_foot": "left" if (np.random.uniform(0, 1) > 0.5) else "right",
+#         "target_foot_pose": None,
+#         "target_support_foot": "left" if (np.random.uniform(0, 1) > 0.5) else "right",
+#         "obstacle_radius": 0.15,
+#     }
+
+#     while in_obstacle(reset_dict["start_foot_pose"], reset_dict["obstacle_radius"]):
+#         reset_dict["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
+
+#     for theta in (-45, 0, 45):
+#         for foot in ("left", "right"):
+#             x = obstacle_coordinates[0] + radius_arround_obstacle * np.cos(np.deg2rad(180 - theta))
+#             y = obstacle_coordinates[1] + radius_arround_obstacle * np.sin(np.deg2rad(180 - theta))
+
+#             reset_dict["target_foot_pose"] = [x, y, np.deg2rad(-theta)]
+#             reset_dict["target_support_foot"] = foot
+
+#             reset_dict_angles = np.append(reset_dict_angles, reset_dict.copy())
+
+#     reset_dict_list.append(reset_dict_angles)
+# print(f"Reset Dict: {len(reset_dict_list)}")
 
 # print(reset_dict_list)
 
@@ -128,7 +149,7 @@ parameters = {
     "env": env,
 }
 
-model = ALGOS[algo].load(model_path, device="cuda", **parameters)
+model = ALGOS[algo].load(model_path, device="auto", **parameters)
 
 
 for reset_dict_exp in tqdm(reset_dict_list):
@@ -145,8 +166,8 @@ for reset_dict_exp in tqdm(reset_dict_list):
             action, lstm_states = model.predict(obs, deterministic=True)
             obs, reward, done, truncated, infos = env.step(action)
             if total_step == 0:
-                obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])).to("cuda"))
-                action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])).to("cuda"))
+                obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])))
+                action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action]).to()))
                 critic_value = critic(obs_tensor, action_tensor)[0].item()
             total_reward += reward
 
