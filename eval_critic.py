@@ -25,6 +25,44 @@ foot_width = 0.08
 radius_arround_obstacle = 0.3
 obstacle_coordinates = [0.3, 0]
 
+def get_reset_dict_list(situation: int, nb_tests:int = 1000, lr:bool = False) -> list:
+    reset_dict_list = []
+    for _ in range(nb_tests):
+        reset_dict_init = {
+            "start_foot_pose": np.random.uniform([-2, -2, -math.pi], [2, 2, math.pi]),
+            "start_support_foot": "left" if (np.random.uniform(0, 1) > 0.5) else "right",
+            "target_foot_pose": None,
+            "target_support_foot": "right",
+            "obstacle_radius": None,
+        }
+        while in_obstacle(reset_dict["start_foot_pose"], reset_dict["obstacle_radius"]):
+            reset_dict_init["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
+
+        if situation == 1:
+            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
+            reset_dict_init["obstacle_radius"] = 0
+        elif situation == 2:
+            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
+            reset_dict_init["obstacle_radius"] = 0
+        elif situation == 3:
+            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
+            reset_dict_init["obstacle_radius"] = 0.15
+        elif situation == 4:
+            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
+            reset_dict_init["obstacle_radius"] = 0.15
+        elif situation == 5:
+            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
+            reset_dict_init["obstacle_radius"] = 0.25
+        elif situation == 6:
+            reset_dict_init["target_foot_pose"] = [0., 0., 0.]
+            reset_dict_init["obstacle_radius"] = 0.25
+
+        if lr:
+            for foot in ("left", "right"):
+                reset_dict["target_support_foot"] = foot
+
+        reset_dict_list.append(reset_dict)
+    return reset_dict_list
 
 def in_obstacle(foot_pose, obstacle_radius):
     in_obstacle = False
@@ -43,8 +81,7 @@ def in_obstacle(foot_pose, obstacle_radius):
     return in_obstacle
 
 
-for i in range(nb_tests):
-    # for theta in np.arange(0, 360, 22.5):
+for _ in range(nb_tests):
     reset_dict_angles = np.array([])
 
     reset_dict = {
@@ -130,5 +167,5 @@ for reset_dict_exp in tqdm(reset_dict_list):
             )
 
 mean_more_steps = np.mean(more_steps_array)
-print(f"Mean More Steps: {mean_more_steps}, Pourcentage error: {more_steps_array.shape[0]*100/nb_tests}%")
+print(f"Mean More Steps: {mean_more_steps}, Percentage error: {more_steps_array.shape[0]*100/nb_tests}%")
 print(f"More Steps: {more_steps_array}")
