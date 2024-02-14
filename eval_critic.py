@@ -16,7 +16,7 @@ folder = "logs"
 
 reset_dict_list = []
 
-nb_tests = 20
+nb_tests = 1
 max_episode_len = 90
 
 foot_length = 0.14
@@ -47,7 +47,6 @@ def rotation_arround_obstacle(theta: float, center:list = obstacle_coordinates, 
 
 def get_reset_dict_list(situation: int, nb_tests:int = 1000, lr:bool = False) -> list:
     reset_dict_list = []
-    reset_dict_dthetadxdy = np.array([])
 
     for _ in range(nb_tests):
         reset_dict_init = {
@@ -84,21 +83,21 @@ def get_reset_dict_list(situation: int, nb_tests:int = 1000, lr:bool = False) ->
             foot = ["left", "right"]
         else:
             foot = ["right"]
-        x_situation = reset_dict_init["target_foot_pose"][0]
-        x_situation = reset_dict_init["target_foot_pose"][1]
-        theta_situation = reset_dict_init["target_foot_pose"][2]
+
+        xy_situation = reset_dict_init["target_foot_pose"][:2]
+        theta_situation = np.rad2deg(reset_dict_init["target_foot_pose"][2])
+        reset_dict_dthetadxdy = np.array([])
         for foot in foot:
             for dtheta in (-45, 0, 45):
-                for dx,dy in [(0, 0), (0, 0.1), (0.1, 0.1)]:
-                    reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(theta_situation+dtheta, [x_situation+dx, x_situation+dy])
+                for dxy in [[0, 0], [0, -0.15], [-0.15, -0.15]]:
+                    reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(theta_situation+dtheta, [sum(x) for x in zip(xy_situation, dxy, obstacle_coordinates)])
                     reset_dict_init["target_support_foot"] = foot
                     reset_dict_dthetadxdy = np.append(reset_dict_dthetadxdy, reset_dict_init.copy())
 
         reset_dict_list.append(reset_dict_dthetadxdy)
     return reset_dict_list
 
-reset_dict_list = get_reset_dict_list(2, 100, True)
-print(reset_dict_list)
+print(get_reset_dict_list(2, 1, True))
 
 print(f"Env. Name: {env_name}, Exp. Number: {exp_nb}, Algo: {algo}")
 
@@ -118,10 +117,10 @@ parameters = {
     "env": env,
 }
 
-model = ALGOS[algo].load(model_path, device="auto", **parameters)
+model = ALGOS[algo].load(model_path, device="cuda", **parameters)
 
 for nb_situation in range(1, 7):
-    reset_dict_list = get_reset_dict_list(nb_situation, nb_tests, True)
+    reset_dict_list = get_reset_dict_list(3, nb_tests, False)
     more_steps_array = np.array([])
     for reset_dict_exp in tqdm(reset_dict_list):
         critic_value_list = np.array([])
@@ -132,13 +131,13 @@ for nb_situation in range(1, 7):
             critic = model.critic.eval()
             total_reward = 0
             total_step = 0
-            # env.render()
+            env.render()
             while (not done) & (total_step < max_episode_len):
                 action, lstm_states = model.predict(obs, deterministic=True)
                 obs, reward, done, truncated, infos = env.step(action)
                 if total_step == 0:
-                    obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])))
-                    action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])))
+                    obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])).to("cuda"))
+                    action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])).to("cuda"))
                     critic_value = critic(obs_tensor, action_tensor)[0].item()
                 total_reward += reward
 
