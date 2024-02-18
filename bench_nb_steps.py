@@ -14,7 +14,9 @@ algo = "td3"
 
 folder = "logs"
 
-nb_tests = 1000
+reset_dict_all_situations_arr = np.array([])
+
+nb_tests = 10
 max_episode_len = 90
 
 foot_length = 0.14
@@ -62,48 +64,26 @@ def get_reset_dict_arr(situation: int, nb_tests:int = 1000, lr:bool = False) -> 
         if situation == 1:
             reset_dict_init["target_foot_pose"] = [0., 0., 0.]
             reset_dict_init["obstacle_radius"] = 0
-            radius_arround_obstacle = 0.4
         elif situation == 2:
             reset_dict_init["target_foot_pose"] = [1., 1., math.pi]
             reset_dict_init["obstacle_radius"] = 0
-            radius_arround_obstacle = 0.4
         elif situation == 3:
             reset_dict_init["target_foot_pose"] = [0., 0., 0.]
             reset_dict_init["obstacle_radius"] = 0.15
-            radius_arround_obstacle = 0.4
         elif situation == 4:
             reset_dict_init["target_foot_pose"] = [1., 1., math.pi]
             reset_dict_init["obstacle_radius"] = 0.15
-            radius_arround_obstacle = 0.4
         elif situation == 5:
             reset_dict_init["target_foot_pose"] = [0., 0., 0.]
             reset_dict_init["obstacle_radius"] = 0.25
-            radius_arround_obstacle = 0.5
         elif situation == 6:
             reset_dict_init["target_foot_pose"] = [1., 1., math.pi]
             reset_dict_init["obstacle_radius"] = 0.25
-            radius_arround_obstacle = 0.5
 
         while in_obstacle(reset_dict_init["start_foot_pose"], reset_dict_init["obstacle_radius"]):
             reset_dict_init["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
 
-        if lr:
-            foot = ["left", "right"]
-        else:
-            foot = ["right"]
-
-        xy_situation = reset_dict_init["target_foot_pose"][:2]
-        theta_situation = np.rad2deg(reset_dict_init["target_foot_pose"][2])
-        reset_dict_dthetadxdy = np.array([])
-        for foot in foot:
-            for dtheta in dthetas:
-                for dxy in dxys:
-                    reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(theta_situation+dtheta, [sum(x) for x in zip(xy_situation, dxy, obstacle_coordinates)],radius_arround_obstacle)
-                    reset_dict_init["target_support_foot"] = foot
-                    reset_dict_dthetadxdy = np.append(reset_dict_dthetadxdy, reset_dict_init.copy())
-                    reset_dict_dthetadxdy = np.array([reset_dict_dthetadxdy])
-
-        reset_dict_arr = np.append(reset_dict_arr, reset_dict_dthetadxdy, axis=0)
+        reset_dict_arr = np.append(reset_dict_arr, reset_dict_init)
     return reset_dict_arr
 
 print(f"Env. Name: {env_name}, Exp. Number: {exp_nb}, Algo: {algo}")
@@ -126,48 +106,53 @@ parameters = {
 
 model = ALGOS[algo].load(model_path, device="cuda", **parameters)
 
+reset_dict_arr = np.empty(shape=(0,nb_tests))
 
 for nb_situation in range(1, 7):
-    reset_dict_arr = get_reset_dict_arr(nb_situation, 1, False)
-    
-    more_steps_array = np.array([])
-    for reset_dict_exp in tqdm(reset_dict_arr):
-        critic_value_arr = np.array([])
-        nb_steps_arr = np.array([])
-        for reset_dict in reset_dict_exp:
-            obs, infos = env.reset(options=reset_dict)
-            done = False
-            critic = model.critic.eval()
-            total_reward = 0
-            nb_steps = 0
-            env.render()
-            
-            while (not done) & (nb_steps < max_episode_len):
-                action, lstm_states = model.predict(obs, deterministic=True)
-                obs, reward, done, truncated, infos = env.step(action)
-                if nb_steps == 0:
-                    obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])).to("cuda"))
-                    action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])).to("cuda"))
-                    critic_value = critic(obs_tensor, action_tensor)[0].item()
-                total_reward += reward
+    reset_dict_arr = np.array([get_reset_dict_arr(nb_situation, nb_tests, False)])
+    reset_dict_all_situations_arr = np.append(reset_dict_all_situations_arr, reset_dict_arr, axis=0)
+    print(reset_dict_all_situations_arr.shape)
+    print(reset_dict_all_situations_arr)
 
-                if not done:
-                    nb_steps += 1
 
-            critic_value_arr = np.append(critic_value_arr, critic_value)
-            nb_steps_arr = np.append(nb_steps_arr, nb_steps)
+more_steps_array = np.array([])
+for reset_dict_exp in tqdm(reset_dict_arr):
+    critic_value_arr = np.array([])
+    nb_steps_arr = np.array([])
+    for reset_dict in reset_dict_exp:
+        obs, infos = env.reset(options=reset_dict)
+        done = False
+        critic = model.critic.eval()
+        total_reward = 0
+        nb_steps = 0
+        
+        while (not done) & (nb_steps < max_episode_len):
+            action, lstm_states = model.predict(obs, deterministic=True)
+            obs, reward, done, truncated, infos = env.step(action)
+            if nb_steps == 0:
+                obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])).to("cuda"))
+                action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])).to("cuda"))
+                critic_value = critic(obs_tensor, action_tensor)[0].item()
+            total_reward += reward
 
-        index_min_total_step = np.argmin(nb_steps_arr)
-        index_min_critic = np.argmax(critic_value_arr)
+            if not done:
+                nb_steps += 1
 
-        if index_min_total_step != index_min_critic:
-            more_steps = nb_steps_arr[index_min_critic] - nb_steps_arr[index_min_total_step]
-            if more_steps != 0:
-                more_steps_array = np.append(
-                    more_steps_array, nb_steps_arr[index_min_critic] - nb_steps_arr[index_min_total_step]
-                )
+        critic_value_arr = np.append(critic_value_arr, critic_value)
+        nb_steps_arr = np.append(nb_steps_arr, nb_steps)
 
-    mean_more_steps = np.sum(more_steps_array)/nb_tests
-    print(f"Situation: {nb_situation}----------------------")
-    print(f"Mean More Steps: {mean_more_steps}, Percentage error: {more_steps_array.shape[0]*100/nb_tests}%")
-    print(f"More Steps: {more_steps_array}")
+    index_min_total_step = np.argmin(nb_steps_arr)
+    index_min_critic = np.argmax(critic_value_arr)
+
+    if index_min_total_step != index_min_critic:
+        more_steps = nb_steps_arr[index_min_critic] - nb_steps_arr[index_min_total_step]
+        if more_steps != 0:
+            more_steps_array = np.append(
+                more_steps_array, nb_steps_arr[index_min_critic] - nb_steps_arr[index_min_total_step]
+            )
+    print(nb_steps_arr)
+
+mean_more_steps = np.sum(more_steps_array)/nb_tests
+print(f"Situation: {nb_situation}----------------------")
+print(f"Mean More Steps: {mean_more_steps}, Percentage error: {more_steps_array.shape[0]*100/nb_tests}%")
+print(f"More Steps: {more_steps_array}")
