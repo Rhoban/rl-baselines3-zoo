@@ -14,7 +14,7 @@ algo = "td3"
 
 folder = "logs"
 
-nb_tests = 1000
+nb_tests = 100000
 max_episode_len = 90
 
 foot_length = 0.14
@@ -46,7 +46,7 @@ def rotation_arround_obstacle(theta: float, center: list = obstacle_coordinates,
     return [x, y, np.deg2rad(-theta)]
 
 
-def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False) -> np.ndarray:
+def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False, obstacle_radius = 0) -> np.ndarray:
     """_summary_
 
     :param int situation: number of the situation
@@ -57,8 +57,8 @@ def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False) -
     if situation == 1:
         dthetas = [-135, -90, -45]
         dxys = [[0.17, 0.17], [0.17, -0.17], [-0.17, 0.17], [-0.17, -0.17]]
-        obstacle_radius = [0]
-        size_list = len(dxys) * len(dthetas) * len(obstacle_radius)
+        size_list = len(dxys) * len(dthetas)
+        size_list *= 2 if lr else 1
         reset_dict_arr = np.empty(shape=(0, size_list))
 
         ref_pose = [0.0, 0.0, 0.0]
@@ -67,8 +67,8 @@ def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False) -
     elif situation == 2:
         dthetas = [-45, 0, 45]
         dxys = [[0.0, 0.0]]
-        obstacle_radius = [0.15, 0.25]
-        size_list = len(dxys) * len(dthetas) * len(obstacle_radius)
+        size_list = len(dxys) * len(dthetas)
+        size_list *= 2 if lr else 1
         reset_dict_arr = np.empty(shape=(0, size_list))
 
         ref_pose = [0.3, 0.0, 0.0]
@@ -76,15 +76,15 @@ def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False) -
 
     elif situation == 3:
         dthetas = [0]
-        dxys = [[0.0, 0.1], [0.0, 0.0], [0.0, -0.1]]
-        obstacle_radius = [0.15, 0.25]
-        size_list = len(dxys) * len(dthetas) * len(obstacle_radius)
+        dxys = [[0.0, 0.15], [0.0, 0.0], [0.0, -0.15]]
+        size_list = len(dxys) * len(dthetas)
+        size_list *= 2 if lr else 1
         reset_dict_arr = np.empty(shape=(0, size_list))
 
-        distx_genzone_obs = 0.5
-        genzone_dxy = [0.3, 0.5]
+        distx_genzone_obs = 0.7
+        genzone_dxy = [0.3, 0.4]
         ref_pose = [0.3, 0.0, 180.0]
-        radius_arround_obstacle = 0.5
+        radius_arround_obstacle = 0.7
 
     if lr:
         foots = ["left", "right"]
@@ -104,25 +104,27 @@ def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False) -
         for foot in foots:
             for dtheta in dthetas:
                 for dxy in dxys:
-                    for obs_radius in obstacle_radius:
-                        reset_dict_init["obstacle_radius"] = obs_radius
-                        reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(
-                            ref_pose[2] + dtheta, [ref_pose[0] + dxy[0], ref_pose[1] + dxy[1]], radius_arround_obstacle
+                    reset_dict_init["obstacle_radius"] = obstacle_radius
+                    reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(
+                        ref_pose[2] + dtheta, [ref_pose[0] + dxy[0], ref_pose[1] + dxy[1]], radius_arround_obstacle
+                    )
+                    reset_dict_init["target_support_foot"] = foot
+                    if situation == 3:
+                        reset_dict_init["start_foot_pose"] = np.random.uniform(
+                            [-genzone_dxy[0] - distx_genzone_obs, -genzone_dxy[1], -math.pi],
+                            [genzone_dxy[0] - distx_genzone_obs, genzone_dxy[1], math.pi],
                         )
-                        reset_dict_init["target_support_foot"] = foot
-                        if situation == 3:
-                            reset_dict_init["start_foot_pose"] = np.random.uniform(
-                                [-genzone_dxy[0] - distx_genzone_obs, -genzone_dxy[1], -math.pi],
-                                [genzone_dxy[0] - distx_genzone_obs, genzone_dxy[1], math.pi],
-                            )
 
-                        while in_obstacle(reset_dict_init["start_foot_pose"], reset_dict_init["obstacle_radius"]):
-                            reset_dict_init["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
+                    while in_obstacle(reset_dict_init["start_foot_pose"], reset_dict_init["obstacle_radius"]):
+                        reset_dict_init["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
 
-                        reset_dict_dthetadxdy = np.append(reset_dict_dthetadxdy, reset_dict_init.copy())
-                        reset_dict_dthetadxdy = np.array([reset_dict_dthetadxdy])
+                    reset_dict_dthetadxdy = np.append(reset_dict_dthetadxdy, reset_dict_init.copy())
+                    reset_dict_dthetadxdy = np.array([reset_dict_dthetadxdy])
 
         reset_dict_arr = np.append(reset_dict_arr, reset_dict_dthetadxdy, axis=0)
+
+    print(f"\n-----Situation: {situation} with obstacle radius = {obs_radius}-----")
+    print(f"Number of tests: {nb_tests}, Number of goal possibilities: {reset_dict_arr.shape[1]} -> theta: {dthetas}, xy: {dxys}")
     return reset_dict_arr
 
 
@@ -146,48 +148,56 @@ parameters = {
 
 model = ALGOS[algo].load(model_path, device="cuda", **parameters)
 
-
+# for situation in [2]:
 for situation in range(1, 4):
-    reset_dict_arr = get_reset_dict_arr(situation, nb_tests, False)
-    print(reset_dict_arr.shape)
-    more_steps_array = np.array([])
-    for reset_dict_exp in tqdm(reset_dict_arr):
-        critic_value_arr = np.array([])
-        nb_steps_arr = np.array([])
-        for reset_dict in reset_dict_exp:
-            obs, infos = env.reset(options=reset_dict)
-            done = False
-            critic = model.critic.eval()
-            total_reward = 0
-            nb_steps = 0
-            # env.render()
+    if situation == 1:
+        obstacle_radius = [0]
+    else:
+        obstacle_radius = [0.10, 0.15, 0.20, 0.25]
 
-            while (not done) & (nb_steps < max_episode_len):
-                action, lstm_states = model.predict(obs, deterministic=True)
-                obs, reward, done, truncated, infos = env.step(action)
-                if nb_steps == 0:
-                    obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])).to("cuda"))
-                    action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])).to("cuda"))
-                    critic_value = critic(obs_tensor, action_tensor)[0].item()
-                total_reward += reward
+    for obs_radius in obstacle_radius:
+        reset_dict_arr = get_reset_dict_arr(situation, nb_tests, False, obs_radius)
+        more_steps_array = np.array([])
 
-                if not done:
-                    nb_steps += 1
+        for reset_dict_exp in tqdm(reset_dict_arr, disable=True):
+            critic_value_arr = np.array([])
+            nb_steps_arr = np.array([])
+            for reset_dict in reset_dict_exp:
+                obs, infos = env.reset(options=reset_dict)
+                done = False
+                critic = model.critic.eval()
+                total_reward = 0
+                nb_steps = 0
+                # env.render()
 
-            critic_value_arr = np.append(critic_value_arr, critic_value)
-            nb_steps_arr = np.append(nb_steps_arr, nb_steps)
+                while (not done) & (nb_steps < max_episode_len):
+                    action, lstm_states = model.predict(obs, deterministic=True)
+                    obs, reward, done, truncated, infos = env.step(action)
+                    if nb_steps == 0:
+                        obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])).to("cuda"))
+                        action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])).to("cuda"))
+                        critic_value = critic(obs_tensor, action_tensor)[0].item()
+                    total_reward += reward
 
-        index_min_total_step = np.argmin(nb_steps_arr)
-        index_min_critic = np.argmax(critic_value_arr)
+                    if not done:
+                        nb_steps += 1
 
-        if index_min_total_step != index_min_critic:
-            more_steps = nb_steps_arr[index_min_critic] - nb_steps_arr[index_min_total_step]
-            if more_steps != 0:
-                more_steps_array = np.append(
-                    more_steps_array, nb_steps_arr[index_min_critic] - nb_steps_arr[index_min_total_step]
-                )
+                critic_value_arr = np.append(critic_value_arr, critic_value)
+                nb_steps_arr = np.append(nb_steps_arr, nb_steps)
 
-    mean_more_steps = np.sum(more_steps_array) / nb_tests
-    print(f"Situation: {situation}----------------------")
-    print(f"Mean More Steps: {mean_more_steps}, Percentage error: {more_steps_array.shape[0]*100/nb_tests}%")
-    print(f"More Steps: {more_steps_array}")
+            index_min_total_step = np.argmin(nb_steps_arr)
+            index_min_critic = np.argmax(critic_value_arr)
+
+            if index_min_total_step != index_min_critic:
+                more_steps = nb_steps_arr[index_min_critic] - nb_steps_arr[index_min_total_step]
+                if more_steps != 0:
+                    more_steps_array = np.append(
+                        more_steps_array, nb_steps_arr[index_min_critic] - nb_steps_arr[index_min_total_step]
+                    )
+
+        global_mean_more_steps = np.sum(more_steps_array) / nb_tests
+        mean_more_steps = np.mean(more_steps_array)
+        mean_more_steps = np.round(mean_more_steps, 2)
+
+        print(f"Mean More Steps: {mean_more_steps}, Global Mean More Steps: {global_mean_more_steps}, Percentage error: {more_steps_array.shape[0]*100/nb_tests}%")
+        print(f"More Steps: {more_steps_array}")
