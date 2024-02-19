@@ -148,7 +148,7 @@ model = ALGOS[algo].load(model_path, device="cuda", **parameters)
 
 
 for situation in range(1, 4):
-    reset_dict_arr = get_reset_dict_arr(3, nb_tests, False)
+    reset_dict_arr = get_reset_dict_arr(situation, nb_tests, False)
     print(reset_dict_arr.shape)
     more_steps_array = np.array([])
     for reset_dict_exp in tqdm(reset_dict_arr):
