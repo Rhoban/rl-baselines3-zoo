@@ -54,8 +54,5 @@ env.render()
 while (not done) & (total_step < max_episode_len):
     action, lstm_states = model.predict(obs, deterministic=True)
     obs, reward, done, truncated, infos = env.step(action)
-
+    total_step += 1
     total_reward += reward
-
-    if not done:
-        total_step += 1

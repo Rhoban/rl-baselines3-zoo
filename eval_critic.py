@@ -5,6 +5,7 @@ from rl_zoo3 import ALGOS
 import gymnasium
 import gym_footsteps_planning
 from rl_zoo3.utils import get_model_path
+from stable_baselines3.common.utils import set_random_seed
 from tqdm import tqdm
 import math
 
@@ -14,9 +15,10 @@ algo = "td3"
 
 folder = "logs"
 
-nb_tests = 100000
+nb_tests = 100
 max_episode_len = 90
 
+set_random_seed(15672578)
 foot_length = 0.14
 foot_width = 0.08
 
@@ -89,7 +91,7 @@ def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False, o
     if lr:
         foots = ["left", "right"]
     else:
-        foots = ["right"]
+        foots = ["left"]
 
     for _ in range(nb_tests):
         reset_dict_init = {
@@ -158,7 +160,8 @@ for situation in range(1, 4):
     for obs_radius in obstacle_radius:
         reset_dict_arr = get_reset_dict_arr(situation, nb_tests, False, obs_radius)
         more_steps_array = np.array([])
-
+        total_nb_steps_arr = np.array([])
+        total_critic_value_arr = np.array([])
         for reset_dict_exp in tqdm(reset_dict_arr, disable=True):
             critic_value_arr = np.array([])
             nb_steps_arr = np.array([])
@@ -173,18 +176,16 @@ for situation in range(1, 4):
                 while (not done) & (nb_steps < max_episode_len):
                     action, lstm_states = model.predict(obs, deterministic=True)
                     obs, reward, done, truncated, infos = env.step(action)
-                    if nb_steps == 0:
+                    nb_steps += 1
+
+                    if nb_steps == 1:
                         obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])).to("cuda"))
                         action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])).to("cuda"))
                         critic_value = critic(obs_tensor, action_tensor)[0].item()
                     total_reward += reward
 
-                    if not done:
-                        nb_steps += 1
-
                 critic_value_arr = np.append(critic_value_arr, critic_value)
                 nb_steps_arr = np.append(nb_steps_arr, nb_steps)
-
             index_min_total_step = np.argmin(nb_steps_arr)
             index_min_critic = np.argmax(critic_value_arr)
 
@@ -195,9 +196,16 @@ for situation in range(1, 4):
                         more_steps_array, nb_steps_arr[index_min_critic] - nb_steps_arr[index_min_total_step]
                     )
 
+            total_nb_steps_arr = np.append(total_nb_steps_arr, nb_steps_arr)
+            total_critic_value_arr = np.append(total_critic_value_arr, critic_value_arr)
+        
         global_mean_more_steps = np.sum(more_steps_array) / nb_tests
         mean_more_steps = np.mean(more_steps_array)
-        mean_more_steps = np.round(mean_more_steps, 2)
+        mean_diff_critic_steps = np.mean(total_nb_steps_arr + total_critic_value_arr)
+        pourcentage_error = more_steps_array.shape[0]*100/nb_tests
+        delta = np.abs((-total_critic_value_arr - total_nb_steps_arr)/total_nb_steps_arr)*100
 
-        print(f"Mean More Steps: {mean_more_steps}, Global Mean More Steps: {global_mean_more_steps}, Percentage error: {more_steps_array.shape[0]*100/nb_tests}%")
+        print(f"Mean More Steps: {np.round(mean_more_steps,2)}, Global Mean More Steps: {global_mean_more_steps}, Percentage error: {np.round(pourcentage_error,2)}%")
+        print(f"Mean Steps: {np.round(np.mean(total_nb_steps_arr),2)}, Mean Critic Value: {np.round(np.mean(total_critic_value_arr),2)}, Mean Difference Critic/Steps: {np.round(mean_diff_critic_steps,2)}")
         print(f"More Steps: {more_steps_array}")
+        print(f"Mean Relative Error: {np.round(np.mean(delta),2)}%")
