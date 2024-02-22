@@ -162,6 +162,8 @@ for situation in range(1, 4):
         more_steps_array = np.array([])
         total_nb_steps_arr = np.array([])
         total_critic_value_arr = np.array([])
+        total_best_nb_steps_arr = np.array([])
+        total_worse_nb_steps_arr = np.array([])
         for reset_dict_exp in tqdm(reset_dict_arr, disable=True):
             critic_value_arr = np.array([])
             nb_steps_arr = np.array([])
@@ -179,7 +181,9 @@ for situation in range(1, 4):
                     nb_steps += 1
 
                     if nb_steps == 1:
+                        # obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])))
                         obs_tensor = model.critic.features_extractor(torch.from_numpy(np.array([obs])).to("cuda"))
+                        # action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])))
                         action_tensor = model.critic.features_extractor(torch.from_numpy(np.array([action])).to("cuda"))
                         critic_value = critic(obs_tensor, action_tensor)[0].item()
                     total_reward += reward
@@ -187,6 +191,7 @@ for situation in range(1, 4):
                 critic_value_arr = np.append(critic_value_arr, critic_value)
                 nb_steps_arr = np.append(nb_steps_arr, nb_steps)
             index_min_total_step = np.argmin(nb_steps_arr)
+            index_max_total_step = np.argmax(nb_steps_arr)
             index_min_critic = np.argmax(critic_value_arr)
 
             if index_min_total_step != index_min_critic:
@@ -198,14 +203,20 @@ for situation in range(1, 4):
 
             total_nb_steps_arr = np.append(total_nb_steps_arr, nb_steps_arr)
             total_critic_value_arr = np.append(total_critic_value_arr, critic_value_arr)
+            total_best_nb_steps_arr = np.append(total_best_nb_steps_arr, nb_steps_arr[index_min_total_step])
+            total_worse_nb_steps_arr = np.append(total_worse_nb_steps_arr, nb_steps_arr[index_max_total_step])
+
         
         global_mean_more_steps = np.sum(more_steps_array) / nb_tests
         mean_more_steps = np.mean(more_steps_array)
         mean_diff_critic_steps = np.mean(total_nb_steps_arr + total_critic_value_arr)
+        mean_best_nb_steps = np.mean(total_best_nb_steps_arr)
+        mean_worse_nb_steps = np.mean(total_worse_nb_steps_arr)
         pourcentage_error = more_steps_array.shape[0]*100/nb_tests
-        delta = np.abs((-total_critic_value_arr - total_nb_steps_arr)/total_nb_steps_arr)*100
+        relative_error = np.abs((-total_critic_value_arr - total_nb_steps_arr)/total_nb_steps_arr)*100
 
         print(f"Mean More Steps: {np.round(mean_more_steps,2)}, Global Mean More Steps: {global_mean_more_steps}, Percentage error: {np.round(pourcentage_error,2)}%")
         print(f"Mean Steps: {np.round(np.mean(total_nb_steps_arr),2)}, Mean Critic Value: {np.round(np.mean(total_critic_value_arr),2)}, Mean Difference Critic/Steps: {np.round(mean_diff_critic_steps,2)}")
         print(f"More Steps: {more_steps_array}")
-        print(f"Mean Relative Error: {np.round(np.mean(delta),2)}%")
+        print(f"Mean Best Nb Steps: {np.round(mean_best_nb_steps,2)}, Mean Worse Nb Steps: {np.round(mean_worse_nb_steps,2)}", "Pourcentage Error Best/Worse: ", np.round((mean_best_nb_steps - mean_worse_nb_steps)*100/mean_best_nb_steps,2), "%")
+        print(f"Mean Relative Error: {np.round(np.mean(relative_error),2)}%")

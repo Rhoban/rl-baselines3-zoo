@@ -119,7 +119,7 @@ if save_reset_dict:
         reset_dict_all_situations_arr = np.append(reset_dict_all_situations_arr, reset_dict_arr, axis=0)
     np.save("reset_dict_all_situations_RL", reset_dict_all_situations_arr, allow_pickle=True, fix_imports=True)
 else:
-    reset_dict_all_situations_arr = np.load("reset_dict_all_situations_new.npy", allow_pickle=True, fix_imports=False, encoding="latin1")
+    reset_dict_all_situations_arr = np.load("reset_dict_all_situations_ROS.npy", allow_pickle=True, fix_imports=False, encoding="latin1")
     nb_tests = reset_dict_all_situations_arr.shape[1]
 
 nb_steps_all_situations_arr = np.empty(shape=(0, nb_tests))
@@ -133,7 +133,6 @@ for nb_situation in range(0, 3):
     for reset_dict in tqdm(reset_dict_arr):    
         obs, infos = env.reset(options=reset_dict)
         done = False
-        critic = model.critic.eval()
         total_reward = 0
         nb_steps = 0
         # env.render()
