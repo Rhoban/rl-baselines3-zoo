@@ -81,7 +81,11 @@ def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False) -
                 [-genzone_dxy[0] - distx_genzone_obs, -genzone_dxy[1], -math.pi],
                 [genzone_dxy[0] - distx_genzone_obs, genzone_dxy[1], math.pi],
             )
-            reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(180, [0.3, 0.0], radius_arround_obstacle)
+            reset_dict_init["target_foot_pose"] = np.random.uniform(
+                [-genzone_dxy[0] + distx_genzone_obs + obstacle_coordinates[0], -genzone_dxy[1], -math.pi],
+                [genzone_dxy[0] + distx_genzone_obs + obstacle_coordinates[0], genzone_dxy[1], math.pi],
+            )
+            # reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(180, [0.3, 0.0], radius_arround_obstacle)
 
         while in_obstacle(reset_dict_init["start_foot_pose"], reset_dict_init["obstacle_radius"]):
             reset_dict_init["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
