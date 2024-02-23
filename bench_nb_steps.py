@@ -14,7 +14,7 @@ algo = "td3"
 
 folder = "logs"
 
-nb_tests = 10
+nb_tests = 100
 max_episode_len = 90
 
 foot_length = 0.14
@@ -72,19 +72,20 @@ def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False) -
             reset_dict_init["target_foot_pose"] = [0.0, 0.0, 0.0]
 
         elif situation == 3:
-            distx_genzone_obs = 0.7
-            genzone_dxy = [0.3, 0.4]
+            distx_genzone_obs = 0.6
+            genzone_dxy = [0.5, 0.25]
             radius_arround_obstacle = 0.7
 
             reset_dict_init["obstacle_radius"] = 0.25
             reset_dict_init["start_foot_pose"] = np.random.uniform(
-                [-genzone_dxy[0] - distx_genzone_obs, -genzone_dxy[1], -math.pi],
-                [genzone_dxy[0] - distx_genzone_obs, genzone_dxy[1], math.pi],
+                [-genzone_dxy[0] - distx_genzone_obs + obstacle_coordinates[0], -genzone_dxy[1], -math.pi],
+                [-distx_genzone_obs + obstacle_coordinates[0], genzone_dxy[1], math.pi],
             )
             reset_dict_init["target_foot_pose"] = np.random.uniform(
-                [-genzone_dxy[0] + distx_genzone_obs + obstacle_coordinates[0], -genzone_dxy[1], -math.pi],
+                [distx_genzone_obs + obstacle_coordinates[0], -genzone_dxy[1], -math.pi],
                 [genzone_dxy[0] + distx_genzone_obs + obstacle_coordinates[0], genzone_dxy[1], math.pi],
             )
+            print(reset_dict_init["start_foot_pose"], reset_dict_init["target_foot_pose"])
             # reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(180, [0.3, 0.0], radius_arround_obstacle)
 
         while in_obstacle(reset_dict_init["start_foot_pose"], reset_dict_init["obstacle_radius"]):
