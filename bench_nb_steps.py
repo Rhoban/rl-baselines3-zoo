@@ -14,7 +14,7 @@ algo = "td3"
 
 folder = "logs"
 
-nb_tests = 100
+nb_tests = 500
 max_episode_len = 90
 
 foot_length = 0.14
@@ -124,13 +124,13 @@ if save_reset_dict:
         reset_dict_all_situations_arr = np.append(reset_dict_all_situations_arr, reset_dict_arr, axis=0)
     np.save("reset_dict_all_situations_RL", reset_dict_all_situations_arr, allow_pickle=True, fix_imports=True)
 else:
-    reset_dict_all_situations_arr = np.load("reset_dict_all_situations_ROS.npy", allow_pickle=True, fix_imports=False, encoding="latin1")
+    reset_dict_all_situations_arr = np.load("reset_dict_all_situations_ROS_500.npy", allow_pickle=True, fix_imports=False, encoding="latin1")
     nb_tests = reset_dict_all_situations_arr.shape[1]
 
 nb_steps_all_situations_arr = np.empty(shape=(0, nb_tests))
 
-for nb_situation in range(0, 3):
-    reset_dict_arr = reset_dict_all_situations_arr[nb_situation]
+for nb_situation in range(1, 4):
+    reset_dict_arr = reset_dict_all_situations_arr[nb_situation-1]
     print(f"\n-----Situation: {nb_situation} with obstacle radius = {reset_dict_arr[0]['obstacle_radius']}-----")
     
     nb_steps_arr = np.empty(shape=(0, 1))
@@ -153,4 +153,4 @@ for nb_situation in range(0, 3):
     nb_steps_arr = np.array([nb_steps_arr])
     nb_steps_all_situations_arr = np.append(nb_steps_all_situations_arr, nb_steps_arr, axis=0)
 
-np.save("nb_steps_all_situations_RL", nb_steps_all_situations_arr, allow_pickle=False, fix_imports=True)
+np.save("nb_steps_all_situations_RL_" + str(nb_tests), nb_steps_all_situations_arr, allow_pickle=False, fix_imports=True)

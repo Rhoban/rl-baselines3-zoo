@@ -21,6 +21,7 @@ max_episode_len = 90
 set_random_seed(15672578)
 foot_length = 0.14
 foot_width = 0.08
+foot_spacing = 0.15
 
 obstacle_coordinates = [0.3, 0]
 
@@ -83,9 +84,8 @@ def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False, o
         size_list *= 2 if lr else 1
         reset_dict_arr = np.empty(shape=(0, size_list))
 
-        distx_genzone_obs = 0.7
-        genzone_dxy = [0.3, 0.4]
-        ref_pose = [0.3, 0.0, 180.0]
+        distx_genzone_obs = 0.6
+        genzone_dxy = [0.5, 0.25]
         radius_arround_obstacle = 0.7
 
     if lr:
@@ -105,17 +105,30 @@ def get_reset_dict_arr(situation: int, nb_tests: int = 1000, lr: bool = False, o
         reset_dict_dthetadxdy = np.array([])
         for foot in foots:
             for dtheta in dthetas:
+                if situation == 3:
+                    reset_dict_init["start_foot_pose"] = np.random.uniform(
+                        [-genzone_dxy[0] - distx_genzone_obs + obstacle_coordinates[0], -genzone_dxy[1], -math.pi],
+                        [-distx_genzone_obs + obstacle_coordinates[0], genzone_dxy[1], math.pi],
+                    )
+                    reset_dict_init["target_foot_pose"] = np.random.uniform(
+                        [distx_genzone_obs + obstacle_coordinates[0], -genzone_dxy[1], -math.pi],
+                        [genzone_dxy[0] + distx_genzone_obs + obstacle_coordinates[0], genzone_dxy[1], math.pi],
+                    )
+                    ref_pose = reset_dict_init["target_foot_pose"]
                 for dxy in dxys:
                     reset_dict_init["obstacle_radius"] = obstacle_radius
-                    reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(
-                        ref_pose[2] + dtheta, [ref_pose[0] + dxy[0], ref_pose[1] + dxy[1]], radius_arround_obstacle
-                    )
                     reset_dict_init["target_support_foot"] = foot
-                    if situation == 3:
-                        reset_dict_init["start_foot_pose"] = np.random.uniform(
-                            [-genzone_dxy[0] - distx_genzone_obs, -genzone_dxy[1], -math.pi],
-                            [genzone_dxy[0] - distx_genzone_obs, genzone_dxy[1], math.pi],
+                    if situation == 1 or situation == 2:
+                        reset_dict_init["target_foot_pose"] = rotation_arround_obstacle(
+                            ref_pose[2] + dtheta, [ref_pose[0] + dxy[0], ref_pose[1] + dxy[1]], radius_arround_obstacle
                         )
+                    elif situation == 3:
+                        x,y,theta = ref_pose
+                        x_offset = dxy[1] * math.cos(theta+math.pi/2)
+                        y_offset = dxy[1] * math.sin(theta+math.pi/2)
+                        x_new = x - x_offset
+                        y_new = y - y_offset
+                        reset_dict_init["target_foot_pose"] = [x_new, y_new, theta]
 
                     while in_obstacle(reset_dict_init["start_foot_pose"], reset_dict_init["obstacle_radius"]):
                         reset_dict_init["start_foot_pose"] = np.random.uniform([-2, -2, -math.pi], [-2, 2, math.pi])
