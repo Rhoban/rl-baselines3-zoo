@@ -24,9 +24,9 @@ for nb_situation in range(1, 4):
     nb_positifs = np.sum(diff_nb_steps > 0)
     pourcentage = (nb_positifs / len(diff_nb_steps)) * 100
     
-    print(f"Mean number of steps ROS: {np.mean(nb_steps_arr_ROS)}")
-    print(f"Mean number of steps RL: {np.mean(nb_steps_arr_RL)}")
-    print(f"Mean: {np.mean(diff_nb_steps)}, Std: {np.std(diff_nb_steps)}")
+    print(f"Mean number of steps ROS: {np.mean(nb_steps_arr_ROS)}, SD: {np.round(np.std(nb_steps_arr_ROS),2)}")
+    print(f"Mean number of steps RL: {np.mean(nb_steps_arr_RL)}, SD: {np.round(np.std(nb_steps_arr_RL),2)}")
+    print(f"Mean: {np.mean(diff_nb_steps)}, SD: {np.round(np.std(diff_nb_steps),2)}")
     print(f"Pourcentage RL better case: {100-pourcentage}%")
     # print(f"Nb steps difference: {diff_nb_steps}")
 
@@ -35,7 +35,7 @@ for nb_situation in range(1, 4):
     mean_relative_ROS_error = ((nb_steps_arr_RL - nb_steps_arr_ROS)/nb_steps_arr_ROS)*100
     mean_relative_RL_error = ((nb_steps_arr_ROS - nb_steps_arr_RL)/nb_steps_arr_RL)*100
 
-    print(f"Mean relative to ROS error: {np.mean(mean_relative_ROS_error)}%")
-    print(f"Mean relative to RL error: {np.mean(mean_relative_RL_error)}%")
-    print(f"Abs. Mean relative to ROS error: {np.mean(abs_mean_relative_ROS_error)}%")
-    print(f"Abs. Mean relative to RL error: {np.mean(abs_mean_relative_RL_error)}%")
+    print(f"Mean relative to ROS error: {np.round(np.mean(mean_relative_ROS_error),2)}%")
+    print(f"Mean relative to RL error: {np.round(np.mean(mean_relative_RL_error),2)}%")
+    print(f"Abs. Mean relative to ROS error: {np.round(np.mean(abs_mean_relative_ROS_error),2)}%")
+    print(f"Abs. Mean relative to RL error: {np.round(np.mean(abs_mean_relative_RL_error),2)}%")
