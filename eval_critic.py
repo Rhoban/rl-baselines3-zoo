@@ -232,7 +232,7 @@ for situation in range(1, 4):
             extra_steps_erroneous_choice_array = (complete_more_steps_array / total_best_nb_steps_arr)*100
 
         print(f"Global Mean More Steps: {global_mean_more_steps}, SD Global More Steps: {np.round(np.std(more_steps_array),2)}")
-        print(f"Mean More Steps: {np.round(mean_more_steps,2)}")
+        print(f"Mean More Steps: {np.round(mean_more_steps,2)}, SD More Steps: {np.round(np.std(more_steps_array),2)}")
         print(f"Percentage error: {np.round(pourcentage_error,2)}%")
         print(f"Mean Steps: {np.round(np.mean(total_nb_steps_arr),2)}, SD Steps: {np.round(np.std(total_nb_steps_arr),2)}")
         print(f"Mean Critic Value: {np.round(np.mean(total_critic_value_arr),2)}, SD Critic Value: {np.round(np.std(total_critic_value_arr),2)}")
@@ -240,7 +240,7 @@ for situation in range(1, 4):
         print(f"Mean Best Nb Steps: {np.round(mean_best_nb_steps,2)}, SD Best Nb Steps: {np.round(np.std(total_best_nb_steps_arr),2)}")
         print(f"Mean Worse Nb Steps: {np.round(mean_worse_nb_steps,2)}, SD Worse Nb Steps: {np.round(np.std(total_worse_nb_steps_arr),2)}")
         print(f"Pourcentage Error Best/Worse: ", np.round((mean_best_nb_steps - mean_worse_nb_steps)*100/mean_best_nb_steps,2), "%")
-        print(f"Mean Relative Error: {np.round(np.mean(relative_error),2)}%")
+        print(f"Mean Relative Error: {np.round(np.mean(relative_error),2)}%, SD Relative Error: {np.round(np.std(relative_error),2)}%")
         print(f"Extra steps erroneous choice: {np.round(np.mean(extra_steps_erroneous_choice_array),2)}%")
         print(f"More Steps: {more_steps_array}")
         

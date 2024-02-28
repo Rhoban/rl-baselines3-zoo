@@ -58,7 +58,7 @@ print(f"Generating a dummy observation {obs}")
 actor_fname = f"{args.output}{args.env}_actor.onnx"
 print(f"Exporting actor model to {actor_fname}")
 actor_model = th.nn.Sequential(policy.actor.features_extractor, policy.actor.mu)
-th.onnx.export(actor_model, obs, actor_fname, opset_version=11)
+th.onnx.export(actor_model, obs, actor_fname, opset_version=13)
 summary(actor_model)
 
 # Value function is a combination of actor and Q
@@ -81,7 +81,7 @@ v_model = TD3PolicyValue(policy, actor_model)
 summary(v_model)
 value_fname = f"{args.output}{args.env}_value.onnx"
 print(f"Exporting value model to {value_fname}")
-th.onnx.export(v_model, obs, value_fname, opset_version=11)
+th.onnx.export(v_model, obs, value_fname, opset_version=13)
 
 print("Exporting models for OpenVino...")
 input_shape = obs.shape
