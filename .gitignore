@@ -31,3 +31,4 @@ keys/
 .cache
 *.lprof
 *.prof
+**.log

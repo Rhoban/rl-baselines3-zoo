@@ -1,4 +1,4 @@
-LINT_PATHS = *.py tests/ scripts/ rl_zoo3/ hyperparams/python/*.py
+LINT_PATHS = *.py tests/ scripts/ rl_zoo3/ hyperparams/python/*.py docs/conf.py
 
 # Run pytest and coverage report
 pytest:
@@ -25,13 +25,13 @@ lint:
 
 format:
 	# Sort imports
-	isort ${LINT_PATHS}
+	ruff --select I ${LINT_PATHS} --fix
 	# Reformat using black
 	black ${LINT_PATHS}
 
 check-codestyle:
 	# Sort imports
-	isort --check ${LINT_PATHS}
+	ruff --select I ${LINT_PATHS}
 	# Reformat using black
 	black --check ${LINT_PATHS}
 
@@ -57,15 +57,15 @@ docker-gpu:
 # PyPi package release
 release:
 	# rm -r build/* dist/*
-	python setup.py sdist
-	python setup.py bdist_wheel
+	python -m build -s
+	python -m build -w
 	twine upload dist/*
 
 # Test PyPi package release
 test-release:
 	# rm -r build/* dist/*
-	python setup.py sdist
-	python setup.py bdist_wheel
+	python -m build -s
+	python -m build -w
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 .PHONY: lint format check-codestyle commit-checks doc spelling docker type pytest

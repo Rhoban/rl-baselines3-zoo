@@ -3,13 +3,13 @@ import gym
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import utils.import_envs
 import torch as th
 from torchinfo import summary
+import rl_zoo3.import_envs
 from stable_baselines3.td3.policies import TD3Policy
 from stable_baselines3.common.preprocessing import is_image_space, preprocess_obs
 import argparse
-from utils import ALGOS, create_test_env, get_latest_run_id, get_saved_hyperparams
+from rl_zoo3.utils import ALGOS, create_test_env, get_latest_run_id, get_saved_hyperparams
 
 
 parser = argparse.ArgumentParser()

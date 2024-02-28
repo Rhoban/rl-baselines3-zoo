@@ -27,12 +27,12 @@ setup(
     },
     entry_points={"console_scripts": ["rl_zoo3=rl_zoo3.cli:main"]},
     install_requires=[
-        "sb3_contrib>=2.0.0a4",
-        "gym==0.26.2",
-        "huggingface_sb3>=2.2.1",
+        "sb3_contrib>=2.1.0",
+        "gymnasium~=0.29.1",
+        "huggingface_sb3>=2.3",
         "tqdm",
         "rich",
-        "optuna",
+        "optuna>=3.0",
         "pyyaml>=5.1",
         "pytablewriter~=0.64",
         # TODO: add test dependencies
@@ -45,19 +45,27 @@ setup(
     url="https://github.com/DLR-RM/rl-baselines3-zoo",
     author_email="antonin.raffin@dlr.de",
     keywords="reinforcement-learning-algorithms reinforcement-learning machine-learning "
-    "gym gymnasium openai stable baselines sb3 toolbox python data-science",
+    "gymnasium openai stable baselines sb3 toolbox python data-science",
     license="MIT",
     long_description=long_description,
     long_description_content_type="text/markdown",
     version=__version__,
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     # PyPI package information.
+    project_urls={
+        "Code": "https://github.com/DLR-RM/rl-baselines3-zoo",
+        "Documentation": "https://rl-baselines3-zoo.readthedocs.io/en/master/",
+        "Changelog": "https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/CHANGELOG.md",
+        "Stable-Baselines3": "https://github.com/DLR-RM/stable-baselines3",
+        "RL-Zoo": "https://github.com/DLR-RM/rl-baselines3-zoo",
+        "SBX": "https://github.com/araffin/sbx",
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
 )
 
