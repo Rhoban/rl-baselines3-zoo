@@ -8,7 +8,7 @@ from rl_zoo3.utils import get_model_path
 from tqdm import tqdm
 import math
 
-env_name = "footsteps-planning-any-obstacle-multigoal-v0"
+env_name = "footsteps-planning-any-withball-multigoal-v0"
 exp_nb = 0
 algo = "td3"
 
@@ -17,9 +17,9 @@ folder = "logs"
 max_episode_len = 90
 
 reset_dict = {
-    "start_foot_pose": [-2.0, 0.0,  0.0],
+    "start_foot_pose": [-2.0, 0.5,  0.0],
     "start_support_foot": "right",
-    "target_foot_pose": [0.0, 0.0, -0.0],
+    "target_foot_pose": [0.0, 0.0, 0.0],
     "target_support_foot": "right",
     "obstacle_radius":0.15,
 }
@@ -56,3 +56,4 @@ while (not done) & (total_step < max_episode_len):
     obs, reward, done, truncated, infos = env.step(action)
     total_step += 1
     total_reward += reward
+input("Press Enter to continue...")
