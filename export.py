@@ -9,6 +9,7 @@ from stable_baselines3.td3.policies import TD3Policy
 from stable_baselines3.common.preprocessing import is_image_space, preprocess_obs
 import argparse
 from rl_zoo3.utils import ALGOS, create_test_env, get_latest_run_id, get_saved_hyperparams
+import openvino as ov
 
 
 parser = argparse.ArgumentParser()
@@ -49,7 +50,7 @@ model = ALGOS["td3"].load(model_fname, env=env, custom_objects=custom_objects, d
 policy = model.policy
 
 # Creating a dummy observation
-obs = th.Tensor(env.reset(), device=device)
+obs = th.Tensor(env.reset()[0], device=device)
 obs = preprocess_obs(obs, env.observation_space).unsqueeze(0)
 
 print(f"Generating a dummy observation {obs}")
@@ -57,7 +58,7 @@ print(f"Generating a dummy observation {obs}")
 actor_fname = f"{args.output}{args.env}_actor.onnx"
 print(f"Exporting actor model to {actor_fname}")
 actor_model = th.nn.Sequential(policy.actor.features_extractor, policy.actor.mu)
-th.onnx.export(actor_model, obs, actor_fname, opset_version=11)
+th.onnx.export(actor_model, obs, actor_fname, opset_version=13)
 summary(actor_model)
 
 # Value function is a combination of actor and Q
@@ -75,15 +76,25 @@ class TD3PolicyValue(th.nn.Module):
 
 
 # Note(antonin): unused variable action
-action = policy.actor.mu(policy.actor.extract_features(obs))
+# action = policy.actor.mu(policy.actor.extract_features(obs))
 v_model = TD3PolicyValue(policy, actor_model)
 summary(v_model)
 value_fname = f"{args.output}{args.env}_value.onnx"
 print(f"Exporting value model to {value_fname}")
-th.onnx.export(v_model, obs, value_fname, opset_version=11)
+th.onnx.export(v_model, obs, value_fname, opset_version=13)
 
 print("Exporting models for OpenVino...")
-input_shape = ",".join(map(str, obs.shape))
-os.system(f"mo --input_model {actor_fname} --input_shape [{input_shape}] --data_type FP32 --output_dir {args.output}")
-os.system(f"mo --input_model {value_fname} --input_shape [{input_shape}] --data_type FP32 --output_dir {args.output}")
+input_shape = obs.shape
 
+input_actor = (input_shape, ov.Type.f32)
+input_value = (input_shape, ov.Type.f32)
+
+ov_model_actor = ov.convert_model(input_model=actor_fname, input=input_actor)
+ov_model_value = ov.convert_model(input_model=value_fname,input=input_value)
+ov.save_model(ov_model_actor, f"{args.output}{args.env}_actor.xml")
+ov.save_model(ov_model_value, f"{args.output}{args.env}_value.xml")
+
+# Old way to export model to OpenVino IR using Model Optimizer (mo)
+# input_shape = ",".join(map(str, obs.shape))
+# os.system(f"mo --input_model {actor_fname} --input_shape [{input_shape}] --data_type FP32 --output_dir {args.output}")
+# os.system(f"mo --input_model {value_fname} --input_shape [{input_shape}] --data_type FP32 --output_dir {args.output}")
